@@ -1,7 +1,7 @@
 #' Calculate features from Talagala, Hyndman, Athanaspoulos and add them to the dataset
 #'
 #'  For each series in \code{dataset}, the feature set used in
-#'   (Talagala, Hyndman and Athanaspoulos, 2018) is calculated
+#'   (Talagala, Hyndman and Athanasopoulos, 2018) is calculated
 #'    and added to the \code{forec_err_dataset}. A \code{tibble} named \code{THA_features}
 #'     is added.
 #' @param fore_err_dataset A list the elements having a \code{ts} object with the name \code{x}
