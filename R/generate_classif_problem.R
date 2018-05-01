@@ -4,8 +4,8 @@
 #'   (Talagala, Hyndman and Athanasopoulos, 2018) is calculated
 #'    and added to the \code{forec_err_dataset}. A \code{tibble} named \code{THA_features}
 #'     is added.
-#' @param fore_err_dataset A list the elements having a \code{ts} object with the name \code{x}
-#' @param The number of cores to be used. \code{n.cores > 1} means parallel processing.
+#' @param dataset A list the elements having a \code{ts} object with the name \code{x}
+#' @param n.cores The number of cores to be used. \code{n.cores > 1} means parallel processing.
 #'
 #' @examples
 #' processed <- generate_THA_feature_dataset(Mcomp::M3[c(1:3)], n.cores=1)
@@ -19,9 +19,8 @@ generate_THA_feature_dataset <-
 
     if (n.cores > 1) {
       cl <- parallel::makeCluster(n.cores)
-      parallel::clusterExport(cl, varlist=ls(), envir=environment())
-      parallel::clusterExport(cl, varlist=ls(envir=environment(generate_THA_feature_dataset)))
-      parallel::clusterCall(cl, function() library(tsfeatures))
+      parallel::clusterExport(cl, varlist="dataset", envir=environment())
+      parallel::clusterCall(cl, function() library(tsfeatures)) #required to find functions within tsfeatures
       list_process_fun <- function(my_list, ...) {
         parallel::parLapplyLB(cl, my_list, ...)
       }
@@ -32,7 +31,7 @@ generate_THA_feature_dataset <-
                                  tryCatch({
                                    #additional features from Talagala, Hyndman, Athanasopoulos 2018
                                    featrow <-
-                                     tsfeatures(
+                                     tsfeatures::tsfeatures(
                                        serdat$x,
                                        features = c(
                                          "acf_features",

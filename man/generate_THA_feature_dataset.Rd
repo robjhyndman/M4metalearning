@@ -7,13 +7,13 @@
 generate_THA_feature_dataset(dataset, n.cores = 1)
 }
 \arguments{
-\item{fore_err_dataset}{A list the elements having a \code{ts} object with the name \code{x}}
+\item{dataset}{A list the elements having a \code{ts} object with the name \code{x}}
 
-\item{The}{number of cores to be used. \code{n.cores > 1} means parallel processing.}
+\item{n.cores}{The number of cores to be used. \code{n.cores > 1} means parallel processing.}
 }
 \description{
 For each series in \code{dataset}, the feature set used in
-  (Talagala, Hyndman and Athanaspoulos, 2018) is calculated
+  (Talagala, Hyndman and Athanasopoulos, 2018) is calculated
    and added to the \code{forec_err_dataset}. A \code{tibble} named \code{THA_features}
     is added.
 }
