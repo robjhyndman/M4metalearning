@@ -1,13 +1,14 @@
 
 
 
-auto_arima_forec <- function(x, h) {
-  model <- forecast::auto.arima(x, stepwise=FALSE, approximation=FALSE)
+snaive_forec <- function(x,h) {
+  model <- forecast::snaive(x, h=length(x))
   forecast::forecast(model, h=h)$mean
 }
 
-snaive_forec <- function(x,h) {
-  model <- forecast::snaive(x, h=length(x))
+
+auto_arima_forec <- function(x, h) {
+  model <- forecast::auto.arima(x, stepwise=FALSE, approximation=FALSE)
   forecast::forecast(model, h=h)$mean
 }
 
