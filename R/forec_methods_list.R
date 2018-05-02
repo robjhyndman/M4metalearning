@@ -7,6 +7,12 @@ snaive_forec <- function(x,h) {
 }
 
 #' @export
+naive_forec <- function(x,h) {
+  model <- forecast::naive(x, h=length(x))
+  forecast::forecast(model, h=h)$mean
+}
+
+#' @export
 auto_arima_forec <- function(x, h) {
   model <- forecast::auto.arima(x, stepwise=FALSE, approximation=FALSE)
   forecast::forecast(model, h=h)$mean
@@ -53,5 +59,7 @@ create_seas_method_list <- function() {
   methods_list <- append(methods_list, "tbats_forec")
   methods_list <- append(methods_list, "stlm_ar_forec")
   methods_list <- append(methods_list, "rw_drift_forec")
+  methods_list <- append(methods_list, "naive_forec")
   methods_list <- append(methods_list, "snaive_forec")
+  methods_list
 }

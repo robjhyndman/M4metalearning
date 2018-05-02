@@ -2,8 +2,12 @@
 
 export(auto_arima_forec)
 export(create_seas_method_list)
+export(ets_forec)
 export(generate_THA_feature_dataset)
+export(naive_forec)
+export(nnetar_forec)
 export(process_forecast_dataset)
 export(rw_drift_forec)
 export(snaive_forec)
 export(stlm_ar_forec)
+export(tbats_forec)
