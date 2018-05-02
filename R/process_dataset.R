@@ -180,13 +180,14 @@ process_forecast_dataset <- function(dataset, methods_list, n.cores=1) {
   if (n.cores > 1) {
     cl <- parallel::makeCluster(n.cores)
     parallel::clusterExport(cl, varlist=ls(), envir=environment())
-    parallel::clusterExport(cl, varlist=ls(envir=environment(process_forecast_methods)))
+    parallel::clusterExport(cl, varlist=ls(envir=environment(process_forecast_methods)),
+                            envir = environment(process_forecast_methods))
     list_process_fun <- function(my_list, ...) {
       parallel::parLapplyLB(cl, my_list, ...)
     }
   }
 
-  list_process_fun(dataset, function (seriesdata) {
+  ret_list <- list_process_fun(dataset, function (seriesdata) {
     results <- process_forecast_methods(seriesdata, methods_list)
     ff <- t(sapply(results, function (resentry) resentry$forecasts))
     method_names <- sapply(results, function (resentry) resentry$method_name)
@@ -204,5 +205,6 @@ process_forecast_dataset <- function(dataset, methods_list, n.cores=1) {
     parallel::stopCluster(cl)
   }
 
+  ret_list
 }
 
