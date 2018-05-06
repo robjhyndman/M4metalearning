@@ -1,0 +1,205 @@
+---
+title: "Forecasting Metalearning Example"
+author: "Pablo Montero-Manso"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Metalearning}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+The purpose of this package is to apply metalearning to time series forecasting problems. A pretrained metalearning model will be provided, one that can be applied directly to a given time series. Additionally, if we have a large time series dataset, we can also train a new metalearning model for it using this package.
+
+We will see an example of the proposed metalearning method, applied to the M3 and M1 forecasting competition datasets. We will consider the M3 dataset as the 'training set' and fit an ensemble metalearning model to it. We will test this new model on the M1 dataset and see the differences in error between using our ensemble,using a single forecasting method, and using other ensemble method.
+
+We start with a dataset that contains the time series and the desired true forecasts.
+
+The first step is to appy the available forecasting methods to each series in the dataset and keep their forecast, as well as calculate the OWI error they produce.
+This package provides the function `process_forecast_dataset` that takes as input the trainig dataset with the time series, and a list of forecasting methods to apply to it. We can see in the documentation of the function `r ?process_forecast_dataset` that the input dataset requires the following format: A `list` with each element having the following structure:
+
+* `x` : Containing the series as a `ts` object.
+* `h` : An integer with the amount of future moments to forecast.
+* `xx` : The 'true' future time series.
+
+This format is inspired by the one used in `Mcomp` and `M4comp2018` packages. Each element of the list may contain additional fields, that will be simply ignored by `process_forecast_dataset`.
+
+On the other hand, the second parameter, `methods_list` is a list of strings, each string has to be the name of an existing **`R`** function that will produce the forecast. The functions pointed by `methods_list` must have the following structure:
+```
+my_forect_method <- fuction(x, h) { ... }
+```
+With x being a `ts` object to forecast and `h` the amount of future moments to forecast. **The output of these functions must be a numeric vector of length `h` containing the forecasts of the method.** The input format is kept for simplicity, any parameters used by the methods must be set internally in these functions.
+
+In this package, some forecasting functions with this format are provided, which are wraps of methods in the ``forecast`` package.
+
+````{r}
+library(M4Metalearning)
+# see an example of function, just a wrap of a method in the forecast pacakge
+auto_arima_forec
+```
+
+A list of methods wrapped from the `forecast` package is also provided in the function `create_seas_method_list()`.
+
+Without further ado, lets process the M3 dataset to generate all forecast and errors, to be used in the metalearning.
+
+````{r}
+#this will take time, use the pregenerated result include as data in the package
+#forec_M3 <- process_forecast_dataset(Mcomp::M3, create_seas_method_list(), n.cores=3)
+data(forec_M3)
+```
+
+Now we have in `forec_M3` the series, the forecasts of each method for each series, and the errors of these forecasts. Specifically, `process_forecast_dataset` produces as output a list, with each element having the following structure:
+
+* x : The series to be forecasted.
+* h : The amount of moments into the future to forecast.
+* xx : The true value of the future of the series.
+* ff : The forecasts of each methods, a matrix with the forecast of each methods per row.
+* errors : A vector with the OWI errors produced by each method.
+
+The idea behind `process_forecast_dataset` is to produce all relevant information that a metalearning method may required for the training.
+
+### A metalearning method: tsfeatures + gradient boosted trees
+
+The information in `forec_M3` is enough to train a metalearning method, but many approaches will required further processing, e.g. extracting features, zero padding the series so all have the same length, etc.
+
+The metalearning method we will show uses features extracted from the series instead of the raw series. With these features, it trains a xgboost model that gives weights to the forecast methods in order to minimize the OWI error (roughly speaking).
+
+The specific features extracted from the series are a key part of the process, and in this package, the function `generate_THA_feature_dataset` calculates such features. A rationale and description of the features may be seen in a --upcoming paper from (Talagala, Hyndman and Athanasopoulos, 2018)--.
+
+`generate_THA_feature_dataset` processes once again a dataset of times series, a list of elements containing at least the field `x` with a `ts` object (in the spirit of the input and output datasets of `process_forecast_dataset` and the `Mcomp` pacakge format).
+We can use `forec_M3` directly to generate the features for each series.
+
+````{r}
+#Will take some time, use the pregenerated file include in the package
+#feat_forec_M3 <- generate_THA_feature_dataset(forec_M3, n.cores=3)
+data(feat_forec_M3)
+```
+
+The output of `generate_THA_feature_dataset` is its input list, but to each element, the field `THA_features` has been added. `THA_features` is a `tibble` object with the extracted features. `THA_features` uses the package `tsfeatures` for extracting the features.
+
+Now we have in `feat_forec_M3` the series, its extracted features, forecasts and errors.
+
+The next step is training the ensemble using xgboost the extracted features and the error produced by eac method.
+
+The `create_feat_classif_problem` auxiliary function is provided to reformat
+the list produced by the previously shown functions to the more common format of a feature matrix and target labels used in classification functions such as `randomForest`, `svm`, `xgboost`, ...
+
+`create_feat_classif_problem` simply produces a list with the entries:
+
+* data : The features extracted from the series
+* errors : The errors produced by the forecasting method
+* labels : The target classification problem, created by selecting the method that produces the smallest error for each series.
+
+````{r}
+train_data <- create_feat_classif_problem(feat_forec_M3)
+head(train_data$data, n=3)
+head(train_data$errors, n=3)
+head(train_data$labels, n=3)
+```
+
+The data in this format is easy to use with any classifier, as we will see.
+The next step is training the metalearning model: a 'classifier' that selects
+the best forecasting method for a time series, given its extracted features.
+One of the proposals in this package is `train_selection_ensemble`, that will create
+a `xgboost` classifier, but it trains it with a custom objective function that requires the whole errors information instead of only which method is the best for each series.
+
+````{r}
+set.seed(1345) #set the seed because xgboost is random!
+meta_model <- train_selection_ensemble(train_data$data, train_data$errors, train_data$labels)
+```
+
+Now we have in `meta_model` a `xgb.Booster` object that can be uses indepently, but easy to use functions for prediction and performance measurement are also provided in the package.
+It only remains now to test this model with the M1 competition dataset.
+We 'really' only need to extract the features from the test dataset, but we will generate the forecasts and errors for the performance analysis.
+
+````{r}
+#Processing will take some time, use the pregenerated data in the package
+#forec_M1 <- process_forecast_dataset(Mcomp::M1, create_seas_method_list(), n.cores=3)
+#feat_forec_M1 <- generate_THA_feature_dataset(forec_M1, n.cores=3)
+data("feat_forec_M1")
+#pose it as a classification problem for ease of use
+test_data <- create_feat_classif_problem(feat_forec_M1)
+pred <- predict_selection_ensemble(meta_model, test_data$data)
+head(pred)
+```
+
+The output of `predict_selection_ensemble` produces probabilities for each class instead of 
+just the selected class (which would be the one with max probability, usually ;) )
+To show the performance of the metalearning model, we have the function `summary_performance`, that requires as input the class probabilities, the errors and labels produced on the test set.
+
+````{r}
+summary_performance(pred, test_data$errors, test_data$labels)
+```
+Before commenting on the results, lets compare with other 'state-of-the-art' classifier, to also showcase the ease of use. We will use a basic `randomForest` classifier for selecting the method.
+````{r}
+#train
+rforest <- randomForest::randomForest(train_data$data, y=as.factor(train_data$labels))
+#test
+pred_forest <- predict(rforest, newdata=test_data$data, type="prob")
+#show performance
+summary_performance(pred_forest, test_data$errors, test_data$labels)
+```
+
+The important output of `summary_performance` is 'Classification error', which is the error in the classification problem of selecting the best forecasting method, and 'Selected OWI' which is the average OWI error produced by the methods selected by the classifier **The important measure!**. 'Oracle OWI' shows the theoretical minimum error that a classifier would produce, 'Single method OWI' is the best method in our pool of forecasting methods, and 'Average OWI' would be the error produced by selecting methods at random from out pool of methods for each series.
+
+We see that while randomForest produces way better classification error, the real forecasting error of the selected methods is worse than our proposal.
+
+###The End!
+
+
+
+
+<!-- Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format: -->
+
+<!-- - Never uses retina figures -->
+<!-- - Has a smaller default figure size -->
+<!-- - Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style -->
+
+<!-- ## Vignette Info -->
+
+<!-- Note the various macros within the `vignette` section of the metadata block above. These are required in order to instruct R how to build the vignette. Note that you should change the `title` field and the `\VignetteIndexEntry` to match the title of your vignette. -->
+
+<!-- ## Styles -->
+
+<!-- The `html_vignette` template includes a basic CSS theme. To override this theme you can specify your own CSS in the document metadata as follows: -->
+
+<!--     output:  -->
+<!--       rmarkdown::html_vignette: -->
+<!--         css: mystyles.css -->
+
+<!-- ## Figures -->
+
+<!-- The figure sizes have been customised so that you can easily put two images side-by-side.  -->
+
+<!-- ```{r, fig.show='hold'} -->
+<!-- plot(1:10) -->
+<!-- plot(10:1) -->
+<!-- ``` -->
+
+<!-- You can enable figure captions by `fig_caption: yes` in YAML: -->
+
+<!--     output: -->
+<!--       rmarkdown::html_vignette: -->
+<!--         fig_caption: yes -->
+
+<!-- Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**. -->
+
+<!-- ## More Examples -->
+
+<!-- You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`. -->
+
+<!-- ```{r, echo=FALSE, results='asis'} -->
+<!-- knitr::kable(head(mtcars, 10)) -->
+<!-- ``` -->
+
+<!-- Also a quote using `>`: -->
+
+<!-- > "He who gives up [code] safety for [code] speed deserves neither." -->
+<!-- ([via](https://twitter.com/hadleywickham/status/504368538874703872)) -->
