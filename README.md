@@ -1,6 +1,6 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-M4Metalearning
+M4metalearning
 ==============
 
 The goal of M4Metalearning is to provide a forecasting metalearning tools, see the example for more information.
@@ -8,7 +8,7 @@ The goal of M4Metalearning is to provide a forecasting metalearning tools, see t
 Installation
 ------------
 
-You can install M4Metalearning from github with:
+You can install M4metalearning from github with:
 
 ``` r
 # install.packages("devtools")
@@ -17,6 +17,15 @@ devtools::install_github("robjhyndman/M4metalearning",
 ```
 
 You will need and auth token from github, because the repository is private. See how to create personal tokens here: <https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/>
+
+### Note
+
+M4metalearning is using, for the time being, a slight modification of the `tsfeatures` package. Please install it from:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("pmontman/tsfeatures")
+```
 
 Example
 -------
@@ -44,14 +53,14 @@ With x being a `ts` object to forecast and `h` the amount of future moments to f
 In this package, some forecasting functions with this format are provided, which are wraps of methods in the `forecast` package.
 
 ``` r
-library(M4Metalearning)
+library(M4metalearning)
 # see an example of function, just a wrap of a method in the forecast pacakge
 auto_arima_forec
 #> function(x, h) {
 #>   model <- forecast::auto.arima(x, stepwise=FALSE, approximation=FALSE)
 #>   forecast::forecast(model, h=h)$mean
 #> }
-#> <environment: namespace:M4Metalearning>
+#> <environment: namespace:M4metalearning>
 ```
 
 A list of methods wrapped from the `forecast` package is also provided in the function `create_seas_method_list()`.
@@ -194,6 +203,8 @@ summary_performance(pred, test_data$errors, test_data$labels)
 #> [1] "Average OWI:  1.101"
 ```
 
+### Results and comparison
+
 Before commenting on the results, lets compare with other 'state-of-the-art' classifier, to also showcase the ease of use. We will use a basic `randomForest` classifier for selecting the method.
 
 ``` r
@@ -203,8 +214,8 @@ rforest <- randomForest::randomForest(train_data$data, y=as.factor(train_data$la
 pred_forest <- predict(rforest, newdata=test_data$data, type="prob")
 #show performance
 summary_performance(pred_forest, test_data$errors, test_data$labels)
-#> [1] "Classification error:  0.7243"
-#> [1] "Selected OWI :  0.9468"
+#> [1] "Classification error:  0.7163"
+#> [1] "Selected OWI :  0.9322"
 #> [1] "Oracle OWI:  0.5807"
 #> [1] "Single method OWI:  0.934"
 #> [1] "Average OWI:  1.101"

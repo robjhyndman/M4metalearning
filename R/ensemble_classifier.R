@@ -77,7 +77,7 @@ train_selection_ensemble <- function(data, errors, labels) {
 
   #check if the custom xgboost version is installed
   if ( !requireNamespace("xgboost", quietly = TRUE)
-       | (utils::packageVersion("xgboost") != '666.6.4.1') ) {
+       || (utils::packageVersion("xgboost") != '666.6.4.1') ) {
     warning("Xgboost CUSTOM version is required!")
     warning("Installing it from github pmontman/customxgboost")
     devtools::install_github("pmontman/customxgboost")

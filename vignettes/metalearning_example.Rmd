@@ -40,7 +40,7 @@ With x being a `ts` object to forecast and `h` the amount of future moments to f
 In this package, some forecasting functions with this format are provided, which are wraps of methods in the ``forecast`` package.
 
 ````{r}
-library(M4Metalearning)
+library(M4metalearning)
 # see an example of function, just a wrap of a method in the forecast pacakge
 auto_arima_forec
 ```
@@ -137,6 +137,9 @@ To show the performance of the metalearning model, we have the function `summary
 ````{r}
 summary_performance(pred, test_data$errors, test_data$labels)
 ```
+
+### Results and comparison
+
 Before commenting on the results, lets compare with other 'state-of-the-art' classifier, to also showcase the ease of use. We will use a basic `randomForest` classifier for selecting the method.
 ````{r}
 #train
