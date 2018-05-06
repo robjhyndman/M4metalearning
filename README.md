@@ -12,7 +12,8 @@ You can install M4Metalearning from github with:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("robjhyndman/M4metalearning", auth_token = "AUTH_TOKEN_REQUIRED_WHILE_REPOSITORY_IS_PRIVATE")
+devtools::install_github("robjhyndman/M4metalearning",
+                         auth_token = "AUTH_TOKEN_REQUIRED_WHILE_REPOSITORY_IS_PRIVATE")
 ```
 
 You will need and auth token from github, because the repository is private. See how to create personal tokens here: <https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/>

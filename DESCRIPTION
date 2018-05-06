@@ -1,4 +1,4 @@
-Package: M4Metalearning
+Package: M4metalearning
 Title: Metalearning Tools For Time Series Forecasting
 Version: 0.0.0.9000
 Authors@R: c(
