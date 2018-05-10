@@ -1,14 +1,5 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-    ## 
-    ## 
-    ## processing file: temporal_metabooting.Rmd
-
-    ## output file: temporal_metabooting.knit.md
-
-    ## 
-    ## Output created: temporal_metabooting.md
-
 M4metalearning
 ==============
 

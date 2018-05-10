@@ -94,6 +94,6 @@ summary_performance(preds, errors = test_data$errors,
                                     dataset = M4metalearning::feat_forec_M3)
 ````
 
-The results are somehow surprising, **the metalearning approach produces less forecasting error than the actual temporal crossvalidated errors**, ***even tough the metalearning was trained on it!*** This happens for both selection and weighting methods!.
+The results are somehow surprising, **the metalearning approach produces less forecasting error than the actual temporal crossvalidated errors**, ***even though the metalearning was trained on it!*** This happens for both selection and weighting methods!.
 
 #### Hence the name MetaBooting, because metalearning is pulling itself from its own bootstraps by improving over the dataset it was trained from!

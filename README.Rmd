@@ -4,14 +4,14 @@ output: github_document
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-```{r, echo = FALSE, results = hide}
+```{r, echo = FALSE, results = 'hide', message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.path = "README-"
 )
-rmarkdown::render("vignettes/temporal_metabooting.Rmd", output_format = "md_document")
-file.rename("temporal_metabooting.md", "docs/temporal_metabooting.md")
+rmarkdown::render("vignettes/temporal_metabooting.Rmd", output_format = "github_document")
+file.rename("vignettes/temporal_metabooting.md", "docs/temporal_metabooting.md")
 options(knitr.duplicate.label = 'allow')
 ```
 
