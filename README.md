@@ -1,5 +1,14 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+    ## 
+    ## 
+    ## processing file: temporal_metabooting.Rmd
+
+    ## output file: temporal_metabooting.knit.md
+
+    ## 
+    ## Output created: temporal_metabooting.md
+
 M4metalearning
 ==============
 
@@ -27,8 +36,22 @@ M4metalearning is using, for the time being, a slight modification of the `tsfea
 devtools::install_github("pmontman/tsfeatures")
 ```
 
-Example
--------
+Also, a custom version of the `xgboost` package is required. It is installed automatically when calling the training functions that use it, since it does not break compatibility. It just supports customized multiclass objective functions. You may install it manually from:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("pmontman/customxgboost")
+```
+
+Table of Contents
+=================
+
+[Example of metalearning process](#basic_example)
+
+[Studying metalearning on a temporal crossvalidation dataset](docs/temporal_metabooting.md)
+
+<a name="basic_example"></a> Example
+------------------------------------
 
 The purpose of this package is to apply metalearning to time series forecasting problems. A pretrained metalearning model will be provided, one that can be applied directly to a given time series. Additionally, if we have a large time series dataset, we can also train a new metalearning model for it using this package.
 
@@ -36,7 +59,7 @@ We will see an example of the proposed metalearning method, applied to the M3 an
 
 We start with a dataset that contains the time series and the desired true forecasts.
 
-The first step is to appy the available forecasting methods to each series in the dataset and keep their forecast, as well as calculate the OWI error they produce. This package provides the function `process_forecast_dataset` that takes as input the trainig dataset with the time series, and a list of forecasting methods to apply to it. We can see in the documentation of the function that the input dataset requires the following format: A `list` with each element having the following structure:
+The first step is to appy the available forecasting methods to each series in the dataset and keep their forecast, as well as calculate the OWI error they produce. This package provides the function `process_forecast_dataset` that takes as input the trainig dataset with the time series, and a list of forecasting methods to apply to it. We can see in the documentation of the function D:/Users/DM/Documents/R/win-library/3.4/M4metalearning/help/process\_forecast\_dataset that the input dataset requires the following format: A `list` with each element having the following structure:
 
 -   `x` : Containing the series as a `ts` object.
 -   `h` : An integer with the amount of future moments to forecast.
@@ -48,7 +71,7 @@ On the other hand, the second parameter, `methods_list` is a list of strings, ea
 
     my_forect_method <- fuction(x, h) { ... }
 
-With x being a `ts` object to forecast and `h` the amount of future moments to forecast. **The output of these functions must be a numeric vector of length `h` containing the forecasts of the method.** The input format is kept for simplicity, any parameters used by the methods must be set internally in these functions.
+With x being a `ts` object to forecast and `h` the amount of future moments to forecast. **The output of these functions must be a numeric vector of length `h` containing the forecasts of the method.** This input format is used for simplicity, any parameters used by the methods must be set internally in these functions.
 
 In this package, some forecasting functions with this format are provided, which are wraps of methods in the `forecast` package.
 
@@ -177,27 +200,28 @@ test_data <- create_feat_classif_problem(feat_forec_M1)
 pred <- predict_selection_ensemble(meta_model, test_data$data)
 head(pred)
 #>           [,1]       [,2]       [,3]       [,4]        [,5]      [,6]
-#> [1,] 0.2269338 0.12371762 0.03105979 0.04737823 0.003582103 0.3412190
-#> [2,] 0.1002761 0.04629103 0.03126886 0.08758427 0.002947387 0.1507138
-#> [3,] 0.1459839 0.06405401 0.02346983 0.05545320 0.001838499 0.3958520
-#> [4,] 0.3362676 0.11876423 0.04596597 0.11015412 0.004861711 0.1601122
-#> [5,] 0.1502393 0.10872702 0.02980672 0.04845675 0.004260490 0.4099174
-#> [6,] 0.2278793 0.11696084 0.03838183 0.08817677 0.003558375 0.2836177
+#> [1,] 0.4126744 0.03294886 0.02789120 0.05433406 0.001903613 0.3651945
+#> [2,] 0.1417656 0.06548569 0.04951726 0.18337094 0.008502115 0.1393316
+#> [3,] 0.2702779 0.04617612 0.03415793 0.03638253 0.002142929 0.3402610
+#> [4,] 0.3022817 0.09461519 0.08035068 0.10781516 0.008261196 0.1779878
+#> [5,] 0.2411339 0.05272113 0.03192545 0.06235105 0.008015598 0.3885438
+#> [6,] 0.2941794 0.10748539 0.03901740 0.09285431 0.003822835 0.2306804
 #>            [,7]       [,8]
-#> [1,] 0.09368592 0.13242356
-#> [2,] 0.45994448 0.12097406
-#> [3,] 0.11652602 0.19682251
-#> [4,] 0.15561923 0.06825489
-#> [5,] 0.12468542 0.12390682
-#> [6,] 0.11220496 0.12922026
+#> [1,] 0.04619768 0.05885564
+#> [2,] 0.21686743 0.19515939
+#> [3,] 0.08200204 0.18859960
+#> [4,] 0.16104414 0.06764414
+#> [5,] 0.11380067 0.10150845
+#> [6,] 0.15561919 0.07634102
 ```
 
-The output of `predict_selection_ensemble` produces probabilities for each class instead of just the selected class (which would be the one with max probability, usually ;) ) To show the performance of the metalearning model, we have the function `summary_performance`, that requires as input the class probabilities, the errors and labels produced on the test set.
+The output of `predict_selection_ensemble` produces probabilities for each class instead of just the selected class (which would be the one with max probability, usually ;) ) To show the performance of the metalearning model, we have the function `summary_performance`, that requires as input the class probabilities, the errors and labels produced on the test set. Additionally, if the whole dataset is provided (in the format of the output of `process_forecast_dataset`), the OWI error of the weighted forecasting method will be also calculated. This is, using the probability predictions to create a linear combination of the individual methods forecasts, instead of selecting the one with highest probability.
 
 ``` r
-summary_performance(pred, test_data$errors, test_data$labels)
-#> [1] "Classification error:  0.8422"
-#> [1] "Selected OWI :  0.8992"
+summary_performance(pred, test_data$errors, test_data$labels, dataset = feat_forec_M1)
+#> [1] "Classification error:  0.8162"
+#> [1] "Selected OWI :  0.8887"
+#> [1] "Weighted OWI :  0.8261"
 #> [1] "Oracle OWI:  0.5807"
 #> [1] "Single method OWI:  0.934"
 #> [1] "Average OWI:  1.101"
@@ -213,17 +237,25 @@ rforest <- randomForest::randomForest(train_data$data, y=as.factor(train_data$la
 #test
 pred_forest <- predict(rforest, newdata=test_data$data, type="prob")
 #show performance
-summary_performance(pred_forest, test_data$errors, test_data$labels)
+summary_performance(pred_forest, test_data$errors, test_data$labels, dataset = feat_forec_M1)
 #> [1] "Classification error:  0.7163"
 #> [1] "Selected OWI :  0.9322"
+#> [1] "Weighted OWI :  0.8298"
 #> [1] "Oracle OWI:  0.5807"
 #> [1] "Single method OWI:  0.934"
 #> [1] "Average OWI:  1.101"
 ```
 
-The important output of `summary_performance` is 'Classification error', which is the error in the classification problem of selecting the best forecasting method, and 'Selected OWI' which is the average OWI error produced by the methods selected by the classifier **The important measure!**. 'Oracle OWI' shows the theoretical minimum error that a classifier would produce, 'Single method OWI' is the best method in our pool of forecasting methods, and 'Average OWI' would be the error produced by selecting methods at random from out pool of methods for each series.
+The important output of `summary_performance` is 'Classification error', which is the error in the classification problem of selecting the best forecasting method, and 'Selected OWI' which is the average OWI error produced by the methods selected by the classifier *(a more important measure!)*. 'Weighted OWI' is the error of the method created via the aforementioned combination of all individual methods by their probabilities. Either 'Selected OWI' or 'Weighted OWI" are the *real* performance measures (whichever is best), though 'Weighted' may not be available if there are restrictions on computing time.
 
-We see that while randomForest produces way better classification error, the real forecasting error of the selected methods is worse than our proposal.
+'Oracle OWI' shows the theoretical minimum error that a classifier would produce, 'Single method OWI' is the best method in our pool of forecasting methods, and 'Average OWI' would be the error produced by selecting methods at random from our pool of methods for each series.
+
+We see that while randomForest produces way better classification error, the 'Selected OWI' forecasting error of the is worse than our proposal. Two very important notes about the 'Weighted OWI':
+
+1.  The 'Weighted OWI' is significanly better than the 'Selected' OWI, even though both methods have been trained for selecting and not specifically for weighting.
+2.  `randomForest` and our approach produce similiar 'Weighted OWI' even though they differ in 'Selected OWI'.
+
+THE NEXT STEP WILL BE TRAINING THE ENSEMBLE TO MINIMIZE THE OWI ERROR OF THE WEIGHTING METHOD.
 
 ### The End!
 

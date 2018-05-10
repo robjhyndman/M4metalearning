@@ -50,6 +50,7 @@ error_softmax_obj <- function(preds, dtrain) {
 #'   }
 #' @export
 create_feat_classif_problem <- function(dataset) {
+  stopifnot("THA_features" %in% names(dataset[[1]]))
   extracted <- t(sapply(dataset, function (lentry) {
     seriesdata <- c(as.numeric(lentry$THA_features), which.min(lentry$errors) -1,
       lentry$errors
@@ -57,10 +58,13 @@ create_feat_classif_problem <- function(dataset) {
     names(seriesdata) <- c( names(lentry$THA_features), "best_method", names(lentry$errors))
     seriesdata
   }))
-  list(data = extracted[, 1:length(dataset[[1]]$THA_features)],
+
+  return_data <- list(data = extracted[, 1:length(dataset[[1]]$THA_features)],
        labels = extracted[, length(dataset[[1]]$THA_features) +1],
        errors = extracted[, -(1:(length(dataset[[1]]$THA_features) +1))]
        )
+
+  return_data
 }
 
 #' Train a method-selecting ensemble that minimizes forecasting error
@@ -90,8 +94,8 @@ train_selection_ensemble <- function(data, errors, labels) {
   param <- list(max_depth=10, eta=0.1, nthread = 2, silent=1,
                 objective=error_softmax_obj,
                 num_class=ncol(errors),
-                subsample=0.3,
-                colsample_bytree=0.3)
+                subsample=0.6,
+                colsample_bytree=0.6)
 
   bst <- xgboost::xgb.train(param, dtrain, 100)
   bst
@@ -108,24 +112,70 @@ predict_selection_ensemble <- function(model, newdata) {
 
 #' @describeIn train_selection_ensemble Analysis of the predictions
 #' @export
-summary_performance <- function(predictions, errors, labels, print.summary = TRUE) {
-  predictions <- apply(predictions, 1, which.max) - 1
-  class_error <- 1 - mean(predictions == labels)
-  owi_error <- mean( sapply(1:nrow(errors),
-                            function (x) errors[x,predictions[x] + 1]) )
+summary_performance <- function(predictions, errors, labels, dataset=NULL, print.summary = TRUE) {
+
+  max_predictions <- apply(predictions, 1, which.max) - 1
+  class_error <- 1 - mean(max_predictions == labels)
+  selected_error <- mean( sapply(1:nrow(errors),
+                            function (x) errors[x,max_predictions[x] + 1]) )
   oracle_error <- mean( sapply(1:nrow(errors),
                                function (x) errors[x,labels[x] + 1]) )
   single_error <- min(colMeans(errors))
   average_error <- mean(errors)
 
+  #calculate the weighted prediction
+  weighted_error <- NULL
+  if (!is.null(dataset)) {
+    if ("snaive_forec" %in% rownames(dataset[[1]]$ff) ) {
+      snaive_index <- which("snaive_forec" == rownames(dataset[[1]]$ff))
+      weighted_error <- sapply(1:nrow(errors), function (i) {
+        weighted_forecast <- t(predictions[i,]) %*% dataset[[i]]$ff
+        snaive_errors <- calculate_errors(dataset[[i]]$x, dataset[[i]]$xx,
+                                          dataset[[i]]$ff[snaive_index,])
+        calculate_owi(dataset[[i]]$x, dataset[[i]]$xx,
+                      snaive_errors,
+                      weighted_forecast)
+      })
+      weighted_error <- mean(weighted_error)
+    }
+  }
+
   if (print.summary) {
     print(paste("Classification error: ", round(class_error,4)))
-    print(paste("Selected OWI : ", round(owi_error,4)))
+    print(paste("Selected OWI : ", round(selected_error,4)))
+    if (!is.null(weighted_error)) {
+      print(paste("Weighted OWI : ", round(weighted_error,4)))
+    }
     print(paste("Oracle OWI: ", round(oracle_error,4)))
     print(paste("Single method OWI: ", round(single_error,3)))
     print(paste("Average OWI: ", round(average_error,3)))
 
   }
+}
+
+
+#' @export
+create_tempcv_dataset <- function(dataset) {
+  lapply(dataset, function(seriesentry) {
+    if (length(seriesentry$x) - seriesentry$h < max(2 * stats::frequency(seriesentry$x) +1, 7)) {
+      length_to_keep <- max(2 * stats::frequency(seriesentry$x) +1, 7)
+      seriesentry$h <- length(seriesentry$x) - length_to_keep
+      if (seriesentry$h < 2) {
+        warning( paste( "cannot subset series by",
+                        2 - seriesentry$h,
+                        " observations, adding a mean constant") )
+        seriesentry$x <- stats::ts(c(seriesentry$x, rep(mean(seriesentry$x),2 - seriesentry$h )),
+                          frequency = stats::frequency(seriesentry$x))
+      }
+    }
+    #note: we get first the tail, if we subset first, problems will arise (a temp variable for x should be used)
+    seriesentry$xx <- utils::tail(seriesentry$x, seriesentry$h)
+    seriesentry$x <- utils::head(seriesentry$x, -seriesentry$h)
+    if (!is.null(seriesentry$n)) {
+      seriesentry$n <- length(seriesentry$x)
+    }
+    seriesentry
+  })
 }
 
 if (0) {

@@ -4,12 +4,15 @@ output: github_document
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, results = hide}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.path = "README-"
 )
+rmarkdown::render("vignettes/temporal_metabooting.Rmd", output_format = "md_document")
+file.rename("temporal_metabooting.md", "docs/temporal_metabooting.md")
+options(knitr.duplicate.label = 'allow')
 ```
 
 # M4metalearning
@@ -38,7 +41,19 @@ M4metalearning is using, for the time being, a slight modification of the `tsfea
 devtools::install_github("pmontman/tsfeatures")
 ```
 
-## Example
+Also, a custom version of the `xgboost` package is required. It is installed automatically when calling the training functions that use it, since it does not break compatibility. It just supports customized multiclass objective functions. You may install it manually from:
+
+```{r , eval = FALSE}
+# install.packages("devtools")
+devtools::install_github("pmontman/customxgboost")
+```
+
+# Table of Contents
+[Example of metalearning process](#basic_example)
+
+[Studying metalearning on a temporal crossvalidation dataset](docs/temporal_metabooting.md)
+
+##<a name="basic_example"></a> Example
 
 ```{r test-main, child = 'vignettes/metalearning_example.Rmd'}
 ```

@@ -3,6 +3,7 @@
 export(auto_arima_forec)
 export(create_feat_classif_problem)
 export(create_seas_method_list)
+export(create_tempcv_dataset)
 export(ets_forec)
 export(generate_THA_feature_dataset)
 export(naive_forec)

@@ -35,7 +35,7 @@ On the other hand, the second parameter, `methods_list` is a list of strings, ea
 ```
 my_forect_method <- fuction(x, h) { ... }
 ```
-With x being a `ts` object to forecast and `h` the amount of future moments to forecast. **The output of these functions must be a numeric vector of length `h` containing the forecasts of the method.** The input format is kept for simplicity, any parameters used by the methods must be set internally in these functions.
+With x being a `ts` object to forecast and `h` the amount of future moments to forecast. **The output of these functions must be a numeric vector of length `h` containing the forecasts of the method.** This input format is used for simplicity, any parameters used by the methods must be set internally in these functions.
 
 In this package, some forecasting functions with this format are provided, which are wraps of methods in the ``forecast`` package.
 
@@ -132,10 +132,10 @@ head(pred)
 
 The output of `predict_selection_ensemble` produces probabilities for each class instead of 
 just the selected class (which would be the one with max probability, usually ;) )
-To show the performance of the metalearning model, we have the function `summary_performance`, that requires as input the class probabilities, the errors and labels produced on the test set.
+To show the performance of the metalearning model, we have the function `summary_performance`, that requires as input the class probabilities, the errors and labels produced on the test set. Additionally, if the whole dataset is provided (in the format of the output of `process_forecast_dataset`), the OWI error of the weighted forecasting method will be also calculated. This is, using the probability predictions to create a linear combination of the individual methods forecasts, instead of selecting the one with highest probability.
 
 ````{r}
-summary_performance(pred, test_data$errors, test_data$labels)
+summary_performance(pred, test_data$errors, test_data$labels, dataset = feat_forec_M1)
 ```
 
 ### Results and comparison
@@ -147,12 +147,20 @@ rforest <- randomForest::randomForest(train_data$data, y=as.factor(train_data$la
 #test
 pred_forest <- predict(rforest, newdata=test_data$data, type="prob")
 #show performance
-summary_performance(pred_forest, test_data$errors, test_data$labels)
+summary_performance(pred_forest, test_data$errors, test_data$labels, dataset = feat_forec_M1)
 ```
 
-The important output of `summary_performance` is 'Classification error', which is the error in the classification problem of selecting the best forecasting method, and 'Selected OWI' which is the average OWI error produced by the methods selected by the classifier **The important measure!**. 'Oracle OWI' shows the theoretical minimum error that a classifier would produce, 'Single method OWI' is the best method in our pool of forecasting methods, and 'Average OWI' would be the error produced by selecting methods at random from out pool of methods for each series.
+The important output of `summary_performance` is 'Classification error', which is the error in the classification problem of selecting the best forecasting method, and 'Selected OWI' which is the average OWI error produced by the methods selected by the classifier *(a more important measure!)*. 'Weighted OWI' is the error of the method created via the aforementioned combination of all individual methods by their probabilities. Either 'Selected OWI' or 'Weighted OWI" are the *real* performance measures (whichever is best), though 'Weighted' may not be available if there are restrictions on computing time.
 
-We see that while randomForest produces way better classification error, the real forecasting error of the selected methods is worse than our proposal.
+'Oracle OWI' shows the theoretical minimum error that a classifier would produce, 'Single method OWI' is the best method in our pool of forecasting methods, and 'Average OWI' would be the error produced by selecting methods at random from our pool of methods for each series.
+
+We see that while randomForest produces way better classification error, the 'Selected OWI' forecasting error of the is worse than our proposal.
+Two very important notes about the 'Weighted OWI':
+
+1. The 'Weighted OWI' is significanly better than the 'Selected' OWI, even though both methods have been trained for selecting and not specifically for weighting.
+2. `randomForest` and our approach produce similiar 'Weighted OWI' even though they differ in 'Selected OWI'.
+
+THE NEXT STEP WILL BE TRAINING THE ENSEMBLE TO MINIMIZE THE OWI ERROR OF THE WEIGHTING METHOD.
 
 ###The End!
 
