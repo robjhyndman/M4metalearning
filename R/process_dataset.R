@@ -119,7 +119,7 @@ process_forecast_methods <- function(seriesdata, methods_list) {
 #' For each series in \code{dataset}, forecasts and
 #' owi errors are generated for all methods in \code{methods_list}.
 #'
-#' \code{dataset} must be with each element having the following format:
+#' \code{dataset} must be a list with each element having the following format:
 #' \describe{
 #'   \item{x}{A time series object \code{ts} with the historical data.}
 #'   \item{h}{The number of required forecasts.}

@@ -77,13 +77,13 @@ auto_arima_forec
 #> <environment: namespace:M4metalearning>
 ```
 
-A list of methods wrapped from the `forecast` package is also provided in the function `create_seas_method_list()`.
+A list of methods wrapped from the `forecast` package is also provided in the function `create_forec_method_list()`.
 
 Without further ado, lets process the M3 dataset to generate all forecast and errors, to be used in the metalearning.
 
 ``` r
 #this will take time, use the pregenerated result include as data in the package
-#forec_M3 <- process_forecast_dataset(Mcomp::M3, create_seas_method_list(), n.cores=3)
+#forec_M3 <- process_forecast_dataset(Mcomp::M3, create_forec_method_list(), n.cores=3)
 data(forec_M3)
 ```
 
@@ -176,14 +176,14 @@ The data in this format is easy to use with any classifier, as we will see. The 
 
 ``` r
 set.seed(1345) #set the seed because xgboost is random!
-meta_model <- train_selection_ensemble(train_data$data, train_data$errors, train_data$labels)
+meta_model <- train_selection_ensemble(train_data$data, train_data$errors)
 ```
 
 Now we have in `meta_model` a `xgb.Booster` object that can be uses indepently, but easy to use functions for prediction and performance measurement are also provided in the package. It only remains now to test this model with the M1 competition dataset. We 'really' only need to extract the features from the test dataset, but we will generate the forecasts and errors for the performance analysis.
 
 ``` r
 #Processing will take some time, use the pregenerated data in the package
-#forec_M1 <- process_forecast_dataset(Mcomp::M1, create_seas_method_list(), n.cores=3)
+#forec_M1 <- process_forecast_dataset(Mcomp::M1, create_forec_method_list(), n.cores=3)
 #feat_forec_M1 <- generate_THA_feature_dataset(forec_M1, n.cores=3)
 data("feat_forec_M1")
 #pose it as a classification problem for ease of use
@@ -213,9 +213,11 @@ summary_performance(pred, test_data$errors, test_data$labels, dataset = feat_for
 #> [1] "Classification error:  0.8162"
 #> [1] "Selected OWI :  0.8887"
 #> [1] "Weighted OWI :  0.8261"
+#> [1] "Naive Weighted OWI :  0.8893"
 #> [1] "Oracle OWI:  0.5807"
 #> [1] "Single method OWI:  0.934"
 #> [1] "Average OWI:  1.101"
+#> [1] 0.8261097
 ```
 
 ### Results and comparison
@@ -232,9 +234,11 @@ summary_performance(pred_forest, test_data$errors, test_data$labels, dataset = f
 #> [1] "Classification error:  0.7163"
 #> [1] "Selected OWI :  0.9322"
 #> [1] "Weighted OWI :  0.8298"
+#> [1] "Naive Weighted OWI :  0.8893"
 #> [1] "Oracle OWI:  0.5807"
 #> [1] "Single method OWI:  0.934"
 #> [1] "Average OWI:  1.101"
+#> [1] 0.8297614
 ```
 
 The important output of `summary_performance` is 'Classification error', which is the error in the classification problem of selecting the best forecasting method, and 'Selected OWI' which is the average OWI error produced by the methods selected by the classifier *(a more important measure!)*. 'Weighted OWI' is the error of the method created via the aforementioned combination of all individual methods by their probabilities. Either 'Selected OWI' or 'Weighted OWI" are the *real* performance measures (whichever is best), though 'Weighted' may not be available if there are restrictions on computing time.
@@ -246,7 +250,17 @@ We see that while randomForest produces way better classification error, the 'Se
 1.  The 'Weighted OWI' is significanly better than the 'Selected' OWI, even though both methods have been trained for selecting and not specifically for weighting.
 2.  `randomForest` and our approach produce similiar 'Weighted OWI' even though they differ in 'Selected OWI'.
 
-THE NEXT STEP WILL BE TRAINING THE ENSEMBLE TO MINIMIZE THE OWI ERROR OF THE WEIGHTING METHOD.
+### Analysis of the model
+
+Models trained with allow for some interpretation, such as relative importance of features, known as gain. We will show the top 20 features ordered by gain.
+
+``` r
+mat <- xgboost::xgb.importance (feature_names = colnames(test_data$data),
+                       model = meta_model)
+xgboost::xgb.plot.importance(importance_matrix = mat[1:20], cex=1.0)
+```
+
+![XGB Feature Gain of the Metalearning model](docs/xgb_gain_plot-1.png)
 
 ### The End!
 

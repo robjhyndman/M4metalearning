@@ -47,12 +47,13 @@ What we do in this example is check these ideas empirically.
 We start in step 1 creating the temporal crossval dataset and processing it applying the forecasting methods in our pool. 
 ````{r}
 library(M4metalearning)
+set.seed(1234)
 #this creates a dataset applying temporal cv to the input dataset
 tempcross_M3 <- create_tempcv_dataset(Mcomp::M3)
 #process it as if was an other dataset, calculate the forecasts for the methods, errors, etc.
 #time consuming step, we will load the results instead
 # forec_tempcross_M3 <- process_forecast_dataset(tempcross_M3,
-#                                                create_seas_method_list(),
+#                                                create_forec_method_list(),
 #                                                n.cores = 3)
 data(forec_tempcross_M3)
 ````
@@ -67,8 +68,7 @@ data(feat_forec_tempcross_M3)
 train_data <- create_feat_classif_problem(feat_forec_tempcross_M3)
 #traning the mode
 tempcross_model <- train_selection_ensemble(train_data$data,
-                                            train_data$errors,
-                                            train_data$labels)
+                                            train_data$errors)
 ````
 
 We proceed to compare results, on one hand we have the predictions of the metalearning, and on the other we have the forecasting errors of the temporal cv datset (as approximation of the erros in the whole dataset). We test these two approaches on the original M3 dataset. We begin by calculating the results of the metalearning approach. 

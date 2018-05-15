@@ -1,3 +1,13 @@
+check_customxgboost_version <- function() {
+  #check if the custom xgboost version is installed
+  if ( !requireNamespace("xgboost", quietly = TRUE)
+       || (utils::packageVersion("xgboost") != '666.6.4.1') ) {
+    warning("Xgboost CUSTOM version is required!")
+    warning("Installing it from github pmontman/customxgboost")
+    devtools::install_github("pmontman/customxgboost")
+  }
+}
+
 # FIX FOR THE CUSTOM MULTICLASS OBJECTIVE : https://github.com/dmlc/xgboost/issues/2776
 
 
@@ -9,7 +19,8 @@ softmax_transform <- function(x) {
   exp(x) / sum(exp(x))
 }
 
-# user define objective function, given prediction, return gradient and second order gradient
+# user defined objective function for xgboost
+# minimizes de class probabilities * owi_errors
 error_softmax_obj <- function(preds, dtrain) {
   labels <- xgboost::getinfo(dtrain, "label")
   errors <- attr(dtrain, "errors")
@@ -30,11 +41,9 @@ error_softmax_obj <- function(preds, dtrain) {
 
 
 
-
 #prepare the time series dataset with extracted features and pose it as a
 #custom classification problem
-
-#TO-DO: when draws in the errors, which class to pick?
+#TO-DO: when there are draws in the errors, which class to pick as label?
 
 #' Create a classification problem from a forecasting-processed time series dataset
 #'
@@ -67,28 +76,20 @@ create_feat_classif_problem <- function(dataset) {
   return_data
 }
 
-#' Train a method-selecting ensemble that minimizes forecasting error
+#' @describeIn metatemp_train Train a method-selecting ensemble that minimizes forecasting error
 #'
 #' @param data A matrix with the input features data (extracted from the series).
 #'     One observation (the features from the original series) per row.
 #' @param errors A matrix with the errors produced by each of the forecasting methods.
 #'     Each row is a vector with the errors of the forecasting methods.
 #' @param labels A numeric vector from 0 to (nclass -1) with the targe labels for classification.
-#'     ACTUALLY, THIS IS ALMOST IGNORED, MAY DISSAPEAR IN THE FUTURE.
 #'
 #' @export
-train_selection_ensemble <- function(data, errors, labels) {
+train_selection_ensemble <- function(data, errors) {
 
-  #check if the custom xgboost version is installed
-  if ( !requireNamespace("xgboost", quietly = TRUE)
-       || (utils::packageVersion("xgboost") != '666.6.4.1') ) {
-    warning("Xgboost CUSTOM version is required!")
-    warning("Installing it from github pmontman/customxgboost")
-    devtools::install_github("pmontman/customxgboost")
-  }
+  check_customxgboost_version()
 
-  dtrain <- xgboost::xgb.DMatrix(data,
-                        label = labels)
+  dtrain <- xgboost::xgb.DMatrix(data)
   attr(dtrain, "errors") <- errors
 
   param <- list(max_depth=10, eta=0.1, nthread = 2, silent=1,
@@ -101,7 +102,7 @@ train_selection_ensemble <- function(data, errors, labels) {
   bst
 }
 
-#' @describeIn train_selection_ensemble Produces predictions probabilities for the selection ensemble.
+#' @describeIn metatemp_train Produces predictions probabilities for the selection ensemble.
 #' @export
 predict_selection_ensemble <- function(model, newdata) {
   pred <- stats::predict(model, newdata, outputmargin = TRUE, reshape=TRUE)
@@ -110,7 +111,7 @@ predict_selection_ensemble <- function(model, newdata) {
 }
 
 
-#' @describeIn train_selection_ensemble Analysis of the predictions
+#' @describeIn metatemp_train Analysis of the predictions
 #' @export
 summary_performance <- function(predictions, errors, labels, dataset=NULL, print.summary = TRUE) {
 
@@ -125,6 +126,7 @@ summary_performance <- function(predictions, errors, labels, dataset=NULL, print
 
   #calculate the weighted prediction
   weighted_error <- NULL
+  naive_weight_error <- NULL
   if (!is.null(dataset)) {
     if ("snaive_forec" %in% rownames(dataset[[1]]$ff) ) {
       snaive_index <- which("snaive_forec" == rownames(dataset[[1]]$ff))
@@ -137,23 +139,58 @@ summary_performance <- function(predictions, errors, labels, dataset=NULL, print
                       weighted_forecast)
       })
       weighted_error <- mean(weighted_error)
+      #calc naive combination
+      naive_weight_error <- sapply(dataset, function(lentry) {
+          naive_ff <- colMeans(lentry$ff)
+          snaive_errors <- calculate_errors(lentry$x, lentry$xx,
+                                            lentry$ff[snaive_index,])
+          calculate_owi(lentry$x, lentry$xx,
+                        snaive_errors,
+                        naive_ff)})
+      naive_weight_error <- mean(naive_weight_error)
     }
+
   }
+
 
   if (print.summary) {
     print(paste("Classification error: ", round(class_error,4)))
     print(paste("Selected OWI : ", round(selected_error,4)))
     if (!is.null(weighted_error)) {
       print(paste("Weighted OWI : ", round(weighted_error,4)))
+      print(paste("Naive Weighted OWI : ", round(naive_weight_error,4)))
     }
     print(paste("Oracle OWI: ", round(oracle_error,4)))
     print(paste("Single method OWI: ", round(single_error,3)))
     print(paste("Average OWI: ", round(average_error,3)))
 
   }
+  weighted_error
 }
 
 
+#' Create Temporal Crossvalidated Dataset
+#'
+#' Creates a datasets of time series for forecasting and metalearning
+#' by extracting the final observations of each series
+#'
+#' The final \code{h} observation are extrated an posed as the true future values
+#' in the entry \code{xx} of the output list. At least 7 observations are kept as the
+#' observable time series \code{x}.
+#'
+#' @param dataset A list with each element having at least the following
+#' \describe{
+#'   \item{x}{A time series object \code{ts} with the historical data.}
+#'   \item{h}{The number of required forecasts.}
+#' }
+#'
+#' @return A list with the same structure as the input,
+#'  the following entries may be added or overwritten if existing
+#' \describe{
+#'   \item{x}{A time series object \code{ts} with the historical data.}
+#'   \item{xx}{A time series with the true future data. Has length \code{h}
+#'   unless the remaining \code{x} would be too short.}
+#' }
 #' @export
 create_tempcv_dataset <- function(dataset) {
   lapply(dataset, function(seriesentry) {
@@ -176,66 +213,4 @@ create_tempcv_dataset <- function(dataset) {
     }
     seriesentry
   })
-}
-
-if (0) {
-train_data <- create_feat_classif_problem(feat_forec_M3)
-test_data <- create_feat_classif_problem(feat_forec_M1)
-
-require(xgboost)
-
-dtrain <- xgboost::xgb.DMatrix(train_data$data,
-                      label = train_data$labels)
-attr(dtrain, "errors") <- train_data$errors
-dtest <- xgboost::xgb.DMatrix(test_data$data,
-                      label = test_data$labels)
-attr(dtest, "errors") <- test_data$errors
-
-
-num_round <- 2000
-
-param <- list(max_depth=10, eta=0.1, nthread = 2, silent=1,
-              objective=error_softmax_obj,
-              num_class=ncol(train_data$errors),
-              subsample=0.3,
-              colsample_bytree=0.3)
-
-bst <- xgboost::xgb.train(param, dtrain, 100)
-
-a <- predict(bst, train_data$data)
-
-pred <- predict(bst, train_data$data, outputmargin = TRUE, reshape=TRUE)
-pred = apply(pred, 1, which.max)
-mean((pred - 1) == train_data$labels)
-owi_error <- mean( sapply(1:nrow(train_data$errors),
-                          function (x) train_data$errors[x,pred[x] ]) )
-owi_error
-
-#analysis of the train
-pred <- predict(bst, test_data$data, outputmargin = TRUE, reshape=TRUE)
-pred = apply(pred, 1, which.max) - 1
-class_error <- 1 - mean(pred == as.factor(xgboost::getinfo(dtest, "label")))
-owi_error <- mean( sapply(1:nrow(test_data$errors),
-                    function (x) test_data$errors[x,pred[x] + 1]) )
-oracle_error <- mean( sapply(1:nrow(test_data$errors),
-                       function (x) test_data$errors[x,test_data$labels[x] + 1]) )
-print(paste("Classification error: ", round(class_error,4)))
-print(paste("OWI_error: ", round(owi_error,4)))
-print(paste("oracle_error: ", round(oracle_error,4)))
-print(paste("Single method OWI: ", round(min(colMeans(test_data$errors)),3)))
-print(paste("Average OWI: ", round(mean(test_data$errors),3)))
-
-importance <- xgb.importance(model = bst)
-head(importance)
-
-forest <- randomForest::randomForest(x = as.matrix(train_data$data),
-                                                   y = as.factor(train_data$labels))
-
-testm <- as.matrix(test_data$data)
-colnames(testm) <- NULL
-pred <- predict(forest, newdata = testm)
-
-1 - mean(pred == as.factor(getinfo(dtrain, "label")))
-mean( sapply(1:nrow(test_data$errors),
-             function (x) test_data$errors[x,as.numeric(pred[x])]) )
 }

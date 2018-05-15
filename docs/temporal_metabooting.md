@@ -1,7 +1,7 @@
 Temporal MetaBooting
 ================
 Pablo Montero-Manso
-2018-05-10
+2018-05-16
 
 This is a example to study the following question:
 
@@ -36,12 +36,13 @@ We start in step 1 creating the temporal crossval dataset and processing it appl
 
 ``` r
 library(M4metalearning)
+set.seed(1234)
 #this creates a dataset applying temporal cv to the input dataset
 tempcross_M3 <- create_tempcv_dataset(Mcomp::M3)
 #process it as if was an other dataset, calculate the forecasts for the methods, errors, etc.
 #time consuming step, we will load the results instead
 # forec_tempcross_M3 <- process_forecast_dataset(tempcross_M3,
-#                                                create_seas_method_list(),
+#                                                create_forec_method_list(),
 #                                                n.cores = 3)
 data(forec_tempcross_M3)
 ```
@@ -57,8 +58,7 @@ data(feat_forec_tempcross_M3)
 train_data <- create_feat_classif_problem(feat_forec_tempcross_M3)
 #traning the mode
 tempcross_model <- train_selection_ensemble(train_data$data,
-                                            train_data$errors,
-                                            train_data$labels)
+                                            train_data$errors)
 ```
 
 We proceed to compare results, on one hand we have the predictions of the metalearning, and on the other we have the forecasting errors of the temporal cv datset (as approximation of the erros in the whole dataset). We test these two approaches on the original M3 dataset. We begin by calculating the results of the metalearning approach.
@@ -71,12 +71,14 @@ meta_preds <- predict_selection_ensemble(tempcross_model, test_data$data)
 summary_performance(meta_preds, errors = test_data$errors,
                                     labels = test_data$labels,
                                     dataset = M4metalearning::feat_forec_M3)
-#> [1] "Classification error:  0.8232"
-#> [1] "Selected OWI :  0.8961"
-#> [1] "Weighted OWI :  0.8276"
+#> [1] "Classification error:  0.8152"
+#> [1] "Selected OWI :  0.905"
+#> [1] "Weighted OWI :  0.8272"
+#> [1] "Naive Weighted OWI :  0.9011"
 #> [1] "Oracle OWI:  0.5648"
 #> [1] "Single method OWI:  0.95"
 #> [1] "Average OWI:  1.132"
+#> [1] 0.8272428
 ```
 
 We will now apply a transformation to the errors produced in the temporal crossvalidated dataset to turn them into probabilities of each class: softmax transform but previously inverting the sign of the errors, so higher is better. This will be the predictions of the "temporal cv dataset".
@@ -92,11 +94,13 @@ summary_performance(preds, errors = test_data$errors,
 #> [1] "Classification error:  0.8192"
 #> [1] "Selected OWI :  0.9887"
 #> [1] "Weighted OWI :  0.8506"
+#> [1] "Naive Weighted OWI :  0.9011"
 #> [1] "Oracle OWI:  0.5648"
 #> [1] "Single method OWI:  0.95"
 #> [1] "Average OWI:  1.132"
+#> [1] 0.8506115
 ```
 
-The results are somehow surprising, **the metalearning approach produces less forecasting error than the actual temporal crossvalidated errors**, ***even tough the metalearning was trained on it!*** This happens for both selection and weighting methods!.
+The results are somehow surprising, **the metalearning approach produces less forecasting error than the actual temporal crossvalidated errors**, ***even though the metalearning was trained on it!*** This happens for both selection and weighting methods!.
 
 #### Hence the name MetaBooting, because metalearning is pulling itself from its own bootstraps by improving over the dataset it was trained from!

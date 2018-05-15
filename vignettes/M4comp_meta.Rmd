@@ -1,0 +1,56 @@
+---
+title: "M4 Competition Metalearning"
+author: "Pablo Montero-Manso"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+Here we show the procedure to used to get to the submission for the M4 competition.
+
+# The Training Set
+
+We will use the *temporal_crossvalidated* M4 dataset as part of the training set. This package contains tools for a easy creation of a training dataset by applying this temporal crossvalidation to time series dataset in the Mcomp format, but without requiring the true target forecasts. The, we apply the forecasts methods in our pool and extract the features. The final step will be training the model, but we require a training-evaluation split of the dataset. You may repeat the process for crossvalidation. That's all. We will show only one snippet to illustrate the simplicity of the approach.
+
+NOTE: This code is not intended to be interactive, since most steps are
+very time consuming.
+
+````{r eval=FALSE}
+#install the R package containing the M4 cometition dataset
+#devtools::install_github(carlanetto/M4comp2018)
+library(M4comp2018)
+#create the temporal crossvalidate dataset from the original
+tcv_M4 <- create_tempcv_dataset(M4)
+#apply the forecasting methods to the training set
+ff_tcv_M4 <- process_forecast_dataset(tcv_M4,
+                                      create_forec_method_list(),
+                                      n.cores = 3)
+#extract the features for our feature-based model
+feat_ff_tcv_M4 <- generate_THA_feature_dataset(ff_tcv_M4, n.cores=3)
+
+#split into training and evaluation, 80% - 20%
+set.seed(31-05-2018)
+ind <- sample(c(TRUE, FALSE), nrow(feat_ff_tcv_M4),
+              replace=TRUE, prob=c(0.8, 0.2))
+train_dataset <- feat_ff_tcv_M4[ind, ]
+test_dataset <- feat_ff_tcv_M4[!ind, ]
+#train the metalearning model, using the selection objetive function
+#saves the results into a file using 'save', a list called meta_results
+meta_results <- metatemp_train(train_dataset, test_dataset,
+                        obj_fun = "select",
+                        filename = "M4meta_select.RData")
+#load("M4meta_select.RData")
+
+````
+
