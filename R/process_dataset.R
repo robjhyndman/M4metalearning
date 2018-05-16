@@ -107,7 +107,15 @@ process_forecast_methods <- function(seriesdata, methods_list) {
   lapply(methods_list, function (mentry) {
     method_name <- mentry
     method_fun <- get(mentry)
-    forecasts <- method_fun(x=seriesdata$x, h=seriesdata$h)
+    forecasts <- tryCatch( method_fun(x=seriesdata$x, h=seriesdata$h),
+                           error=function(error) {
+                             print(error)
+                             print(paste("ERROR processing series: ", seriesdata$st))
+                             print(paste("The forecast method that produced the error is:",
+                                         method_name))
+                             print("Returning snaive forecasts instead")
+                             forecast_snaive
+                           })
     owi_error <- calculate_owi(seriesdata$x, seriesdata$xx, snaive_errors, forecasts)
     list(error=owi_error, forecasts=forecasts, method_name=method_name)
   })
@@ -194,11 +202,9 @@ process_forecast_dataset <- function(dataset, methods_list, n.cores=1) {
     row.names(ff) <- method_names
     errors <- sapply(results, function (resentry) resentry$error)
     names(errors) <- method_names
-    list(x = seriesdata$x,
-         xx = seriesdata$xx,
-         h = seriesdata$h,
-         ff = ff,
-         errors = errors)
+    seriesdata$ff <- ff
+    seriesdata$errors <- errors
+    seriesdata
   })
 
   if (n.cores > 1) {

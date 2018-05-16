@@ -152,13 +152,15 @@ summary_performance(pred_forest, test_data$errors, test_data$labels, dataset = f
 
 The important output of `summary_performance` is 'Classification error', which is the error in the classification problem of selecting the best forecasting method, and 'Selected OWI' which is the average OWI error produced by the methods selected by the classifier *(a more important measure!)*. 'Weighted OWI' is the error of the method created via the aforementioned combination of all individual methods by their probabilities. Either 'Selected OWI' or 'Weighted OWI" are the *real* performance measures (whichever is best), though 'Weighted' may not be available if there are restrictions on computing time.
 
-'Oracle OWI' shows the theoretical minimum error that a classifier would produce, 'Single method OWI' is the best method in our pool of forecasting methods, and 'Average OWI' would be the error produced by selecting methods at random from our pool of methods for each series.
+'Oracle OWI' shows the theoretical minimum error that a classifier would produce, 'Single method OWI' is the best method in our pool of forecasting methods, and 'Average OWI' would be the error produced by selecting methods at random from our pool of methods for each series. 'Naive weighted' is the error produced by averaging the forecasts of the methods to produce a new forecast.
 
 We see that while randomForest produces way better classification error, the 'Selected OWI' forecasting error of the is worse than our proposal.
 Two very important notes about the 'Weighted OWI':
 
 1. The 'Weighted OWI' is significanly better than the 'Selected' OWI, even though both methods have been trained for selecting and not specifically for weighting.
 2. `randomForest` and our approach produce similiar 'Weighted OWI' even though they differ in 'Selected OWI'.
+
+The  'Naive Weighted OWI' is also better than the single best method.
 
 ### Analysis of the model
 Models trained with \code{xgboost} allow for some interpretation, such as relative importance of features, known as gain. We will show the top 20 features ordered by gain.
