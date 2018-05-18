@@ -103,6 +103,8 @@ train_selection_ensemble <- function(data, errors) {
 }
 
 #' @describeIn metatemp_train Produces predictions probabilities for the selection ensemble.
+#' @param model The xgboost model
+#' @param newdata The feature matrix, one row per series
 #' @export
 predict_selection_ensemble <- function(model, newdata) {
   pred <- stats::predict(model, newdata, outputmargin = TRUE, reshape=TRUE)
@@ -112,13 +114,22 @@ predict_selection_ensemble <- function(model, newdata) {
 
 
 #' @describeIn metatemp_train Analysis of the predictions
+#' @param predictions A NXM matrix with N the number of observations(time series)
+#'                    and M the number of methods.
+#' @param errors The NXM matrix with the erros per series and per method
+#' @param labels Integer vector The true labels of the would be classification problem.
+#'               Possible values are from 0 to M-1
+#' @param dataset The list with the meta information, if given additional details will be provided
+#' @param print.summary Boolean indicating wheter to print the information
+#'
 #' @export
+
 summary_performance <- function(predictions, errors, labels, dataset=NULL, print.summary = TRUE) {
 
   max_predictions <- apply(predictions, 1, which.max) - 1
   class_error <- 1 - mean(max_predictions == labels)
   selected_error <- mean( sapply(1:nrow(errors),
-                            function (x) errors[x,max_predictions[x] + 1]) )
+                                 function (x) errors[x,max_predictions[x] + 1]) )
   oracle_error <- mean( sapply(1:nrow(errors),
                                function (x) errors[x,labels[x] + 1]) )
   single_error <- min(colMeans(errors))
@@ -128,29 +139,19 @@ summary_performance <- function(predictions, errors, labels, dataset=NULL, print
   weighted_error <- NULL
   naive_weight_error <- NULL
   if (!is.null(dataset)) {
-    if ("snaive_forec" %in% rownames(dataset[[1]]$ff) ) {
-      snaive_index <- which("snaive_forec" == rownames(dataset[[1]]$ff))
-      weighted_error <- sapply(1:nrow(errors), function (i) {
-        weighted_forecast <- t(predictions[i,]) %*% dataset[[i]]$ff
-        snaive_errors <- calculate_errors(dataset[[i]]$x, dataset[[i]]$xx,
-                                          dataset[[i]]$ff[snaive_index,])
-        calculate_owi(dataset[[i]]$x, dataset[[i]]$xx,
-                      snaive_errors,
-                      weighted_forecast)
-      })
-      weighted_error <- mean(weighted_error)
-      #calc naive combination
-      naive_weight_error <- sapply(dataset, function(lentry) {
-          naive_ff <- colMeans(lentry$ff)
-          snaive_errors <- calculate_errors(lentry$x, lentry$xx,
-                                            lentry$ff[snaive_index,])
-          calculate_owi(lentry$x, lentry$xx,
-                        snaive_errors,
-                        naive_ff)})
-      naive_weight_error <- mean(naive_weight_error)
-    }
 
+    for (i in 1:length(dataset)) {
+      weighted_ff <- t(predictions[i,]) %*% dataset[[i]]$ff
+      naive_combi_ff <- colMeans(dataset[[i]]$ff)
+      dataset[[i]]$ff <- rbind(weighted_ff, naive_combi_ff)
+    }
+    dataset <- fast_errors_dataset(dataset)
+    combi_error <- sapply(dataset, function (lentry) {
+      lentry$errors})
+    weighted_error <- mean(combi_error[1,])
+    naive_weight_error  <- mean(combi_error[2,])
   }
+
 
 
   if (print.summary) {
@@ -167,6 +168,10 @@ summary_performance <- function(predictions, errors, labels, dataset=NULL, print
   }
   weighted_error
 }
+
+
+
+
 
 
 #' Create Temporal Crossvalidated Dataset

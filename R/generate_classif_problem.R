@@ -16,7 +16,7 @@ generate_THA_feature_dataset <-
   function(dataset, n.cores=1) {
     list_process_fun <- lapply
     cl = -1
-
+    require(tsfeatures)
     if (n.cores > 1) {
       cl <- parallel::makeCluster(n.cores)
       parallel::clusterExport(cl, varlist="dataset", envir=environment())

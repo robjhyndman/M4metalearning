@@ -53,6 +53,56 @@ mase_cal <- function(insample, outsample, forecasts) {
 }
 
 
+#' @export
+fast_errors_dataset <- function(dataset) {
+
+  total_snaive_errors <- c(0,0)
+  for (i in 1:length(dataset)) {
+    lentry <- dataset[[i]]
+    insample <- lentry$x
+
+    #extrac forecasts and attach the snaive for completion
+    ff <- lentry$ff
+    ff <- rbind(ff, snaive_forec(insample, lentry$h))
+
+    frq <- frq <- stats::frequency(insample)
+    insample <- as.numeric(insample)
+    outsample <- as.numeric(lentry$xx)
+    masep <- mean(abs(head(insample,-frq) - tail(insample,-frq)))
+
+
+    repoutsample <- matrix(
+      rep(outsample, each=nrow(ff)),
+      nrow=nrow(ff))
+
+    smape_err <- 200*abs(ff - repoutsample) / (abs(ff) + abs(repoutsample))
+
+    mase_err <- abs(ff - repoutsample) / masep
+
+    lentry$snaive_mase <- mase_err[nrow(mase_err), ]
+    lentry$snaive_smape <- smape_err[nrow(smape_err),]
+
+    lentry$mase_err <- mase_err[-nrow(mase_err),]
+    lentry$smape_err <- smape_err[-nrow(smape_err),]
+    dataset[[i]] <- lentry
+    total_snaive_errors <- total_snaive_errors + c(mean(lentry$snaive_mase),
+                                                   mean(lentry$snaive_smape))
+  }
+  total_snaive_errors = total_snaive_errors / length(dataset)
+  avg_snaive_errors <- list(avg_mase=total_snaive_errors[1],
+                            avg_smape=total_snaive_errors[2])
+
+
+  for (i in 1:length(dataset)) {
+    lentry <- dataset[[i]]
+    dataset[[i]]$errors <- 0.5*(rowMeans(lentry$mase_err)/avg_snaive_errors$avg_mase +
+    rowMeans(lentry$smape_err)/avg_snaive_errors$avg_smape)
+  }
+  dataset
+}
+
+
+
 ############################################################################
 ####### CALULATE THE FORECASTS AND ERRORS FOR A GIVEN FORECAST METHOD ######
 ############################################################################
@@ -90,7 +140,7 @@ calculate_owi <- function(insample, outsample, snaive_errors, forecasts) {
 }
 
 
-#processes forecast methods on a series, outputting the error
+#processes forecast methods on a series
 #given a series component
 #and list of forecast methods
 process_forecast_methods <- function(seriesdata, methods_list) {
@@ -116,8 +166,7 @@ process_forecast_methods <- function(seriesdata, methods_list) {
                              print("Returning snaive forecasts instead")
                              forecast_snaive
                            })
-    owi_error <- calculate_owi(seriesdata$x, seriesdata$xx, snaive_errors, forecasts)
-    list(error=owi_error, forecasts=forecasts, method_name=method_name)
+    list( forecasts=forecasts, method_name=method_name)
   })
 }
 
@@ -200,12 +249,11 @@ process_forecast_dataset <- function(dataset, methods_list, n.cores=1) {
     ff <- t(sapply(results, function (resentry) resentry$forecasts))
     method_names <- sapply(results, function (resentry) resentry$method_name)
     row.names(ff) <- method_names
-    errors <- sapply(results, function (resentry) resentry$error)
-    names(errors) <- method_names
     seriesdata$ff <- ff
-    seriesdata$errors <- errors
     seriesdata
   })
+
+  ret_list <- fast_errors_dataset(ret_list)
 
   if (n.cores > 1) {
     parallel::stopCluster(cl)

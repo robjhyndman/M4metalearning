@@ -207,9 +207,10 @@ train_combination_ensemble <- function(dataset, test_dataset=NULL) {
 #'   \item{errors}{The number of required forecasts.}
 #' }
 #' @param eval_dataset A list in the format of \code{train_dataset}, used for evaluating the error.
-#' Can be the same as \code{train_dataset} to show training error.
-#' @param obj_fun The objective loss function that the metalearning minimizes.
+#' Can be the same as \code{train_dataset} to show training error
+#' @param obj_fun The objective loss function that the metalearning minimizes
 #' @param filename Name of the file used for saving the metalearning process
+#' @param verbose Boolean indicating whether training progress messages may be printed
 #'
 #' @return
 #' \describe{
@@ -224,7 +225,8 @@ metatemp_train <- function(train_dataset,
                                        "combi:smax_abs",
                                        "combi:smax_sq",
                                        "combi:square"),
-                           filename = "meta_results.RData") {
+                           filename = "meta_results.RData",
+                           verbose = FALSE) {
 
   check_customxgboost_version()
 
@@ -300,7 +302,7 @@ metatemp_train <- function(train_dataset,
     colsample_bytree <- params_grid[i,4]
     subsample <- params_grid[i,5]
 
-    print(paste("Training with: ",
+    if (verbose)  print(paste("Training with: ",
                 "max_depth=", max_depth,
                 "nrounds=",nrounds,
                 "eta=",eta,
@@ -326,16 +328,16 @@ metatemp_train <- function(train_dataset,
                                      eval_data$errors,
                                      eval_data$labels,
                                      eval_dataset,
-                                     print.summary = FALSE)
+                                     print.summary = verbose)
     if (is.nan(owi_error)) {
       owi_error <- 999999999.9
     }
     results_grid[i, ncol(results_grid)] <- owi_error
 
-    print(paste("Iter: ", i, " OWI: ", round(owi_error,3)))
+    if (verbose) print(paste("Iter: ", i, " OWI: ", round(owi_error,3)))
 
     if (owi_error < best_owi) {
-      print("Improved the owi!")
+      if (verbose) print("Improved the owi!")
       best_owi <- owi_error
       best_model <- bst
     }

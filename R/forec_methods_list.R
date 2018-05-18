@@ -21,8 +21,10 @@ create_forec_method_list <- function() {
 #' @param h The amount of future time steps to forecast
 #' @export
 snaive_forec <- function(x,h) {
-  model <- forecast::snaive(x, h=length(x))
-  forecast::forecast(model, h=h)$mean
+  #model <- forecast::snaive(x, h=length(x))
+  #forecast::forecast(model, h=h)$mean
+  frq <- frequency(x)
+  tail(x,frq)[((1:h -1) %% frq) + 1]
 }
 
 #' @describeIn create_forec_method_list forecast::naive

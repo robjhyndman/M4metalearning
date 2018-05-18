@@ -10,7 +10,7 @@ Trains a metalearning model by performing search on the hyperparameters}
 \usage{
 metatemp_train(train_dataset, eval_dataset, obj_fun = c("select",
   "combi:smax_abs", "combi:smax_sq", "combi:square"),
-  filename = "meta_results.RData")
+  filename = "meta_results.RData", verbose = FALSE)
 
 train_selection_ensemble(data, errors)
 
@@ -32,11 +32,13 @@ E.g. the output of a combination of \code{process_forecast_dataset} and \code{ge
 }}
 
 \item{eval_dataset}{A list in the format of \code{train_dataset}, used for evaluating the error.
-Can be the same as \code{train_dataset} to show training error.}
+Can be the same as \code{train_dataset} to show training error}
 
-\item{obj_fun}{The objective loss function that the metalearning minimizes.}
+\item{obj_fun}{The objective loss function that the metalearning minimizes}
 
 \item{filename}{Name of the file used for saving the metalearning process}
+
+\item{verbose}{Boolean indicating whether training progress messages may be printed}
 
 \item{data}{A matrix with the input features data (extracted from the series).
 One observation (the features from the original series) per row.}
@@ -44,7 +46,23 @@ One observation (the features from the original series) per row.}
 \item{errors}{A matrix with the errors produced by each of the forecasting methods.
 Each row is a vector with the errors of the forecasting methods.}
 
+\item{model}{The xgboost model}
+
+\item{newdata}{The feature matrix, one row per series}
+
+\item{predictions}{A NXM matrix with N the number of observations(time series)
+and M the number of methods.}
+
 \item{labels}{A numeric vector from 0 to (nclass -1) with the targe labels for classification.}
+
+\item{dataset}{The list with the meta information, if given additional details will be provided}
+
+\item{print.summary}{Boolean indicating wheter to print the information}
+
+\item{errors}{The NXM matrix with the erros per series and per method}
+
+\item{labels}{Integer vector The true labels of the would be classification problem.
+Possible values are from 0 to M-1}
 }
 \value{
 \describe{
