@@ -23,7 +23,7 @@ create_forec_method_list <- function() {
 snaive_forec <- function(x,h) {
   #model <- forecast::snaive(x, h=length(x))
   #forecast::forecast(model, h=h)$mean
-  frq <- frequency(x)
+  frq <- stats::frequency(x)
   tail(x,frq)[((1:h -1) %% frq) + 1]
 }
 
@@ -58,7 +58,7 @@ nnetar_forec <- function(x, h) {
 #' @describeIn create_forec_method_list forecast::tbats
 #' @export
 tbats_forec <- function(x, h) {
-  model <- forecast::tbats(x)
+  model <- forecast::tbats(x, use.parallel=FALSE)
   forecast::forecast(model, h=h)$mean
 }
 
@@ -78,5 +78,3 @@ rw_drift_forec <- function(x, h) {
   model <- forecast::rwf(x, drift=TRUE, h=length(x))
   forecast::forecast(model, h=h)$mean
 }
-
-

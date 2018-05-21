@@ -256,7 +256,7 @@ process_forecast_dataset <- function(dataset, methods_list, n.cores=1) {
     seriesdata
   })
 
-  if (!is.null(res_list[[1]]$xx)) { #check whether there are true forecasts for computing the errors
+  if (!is.null(ret_list[[1]]$xx)) { #check whether there are true forecasts for computing the errors
     ret_list <- fast_errors_dataset(ret_list)
   }
 
