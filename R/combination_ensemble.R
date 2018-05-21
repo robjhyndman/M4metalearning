@@ -85,8 +85,8 @@ combi_softmax_abs <- function(preds, dtrain) {
   Sxx <-  ew*(S - xx)
   GradSxx <- ew*(preds*(ff - S))
   grad = smooth_sign(Sxx)*GradSxx
-  hess = 2*sigmoid_clamp(Sxx)*(1-sigmoid_clamp(Sxx))*GradSxx +
-   0* smooth_sign(Sxx)*ew*(ff - preds*(ff-0*S))
+  hess = 2*sigmoid_clamp(Sxx)*(1-sigmoid_clamp(Sxx))*GradSxx #+
+   #0* smooth_sign(Sxx)*ew*(ff - preds*(ff-0*S))
 
   print( mean(abs(Sxx)))
 
@@ -131,6 +131,7 @@ calc_external_weight <- function(insample, h) {
 }
 
 
+#' @export
 create_combi_info <- function(dataset) {
   #transform the dataset into matrix format
   #with one forecast horizon per row, that will be properly weighted
@@ -226,7 +227,8 @@ metatemp_train <- function(train_dataset,
                                        "combi:smax_sq",
                                        "combi:square"),
                            filename = "meta_results.RData",
-                           verbose = FALSE) {
+                           verbose = FALSE,
+                           n.cores=3) {
 
   check_customxgboost_version()
 
@@ -272,7 +274,7 @@ metatemp_train <- function(train_dataset,
 
   max_depth_grid <- c(4,6,8,10)
   nrounds_grid <- c(20,50,100,200)
-  eta_grid <- 0.1*c(0.001, 0.01, 0.05, 0.1, 0.2)
+  eta_grid <- 2*c(0.001, 0.01, 0.05, 0.1, 0.2)
   colsample_bytree_grid <- c(0.6, 1.0)
   subsample_grid <- c(0.6, 0.9)
 
@@ -285,10 +287,11 @@ metatemp_train <- function(train_dataset,
   #randomize grid search
   params_grid <- params_grid[sample(nrow(params_grid)),]
 
-  results_grid <- cbind(params_grid, -666)
+  results_grid <- cbind(params_grid, -666, -666)
   colnames(results_grid) <- c("max_depth", "nrounds",
                               "eta", "colsample_bytree",
-                               "subsample", "owi_error")
+                               "subsample", "selected_owi_error",
+                              "weighted_owi_error")
 
 
 
@@ -311,7 +314,7 @@ metatemp_train <- function(train_dataset,
 
 
     param <- list(max_depth=max_depth,
-                  eta=eta, nthread = 3,
+                  eta=eta, nthread = n.cores,
                   silent=0,
                   objective=objective_fun,
                   num_class=nrow(train_dataset[[1]]$ff),
@@ -324,15 +327,14 @@ metatemp_train <- function(train_dataset,
     if (apply_softmax) {
       preds <- t(apply( preds, 1, softmax_transform))
     }
-    owi_error <- summary_performance(preds,
-                                     eval_data$errors,
-                                     eval_data$labels,
+    errors <- summary_performance(preds,
                                      eval_dataset,
                                      print.summary = verbose)
+    owi_error <- min(unlist(errors))
     if (is.nan(owi_error)) {
       owi_error <- 999999999.9
     }
-    results_grid[i, ncol(results_grid)] <- owi_error
+    results_grid[i, (ncol(results_grid)-1):ncol(results_grid)] <- unlist(errors)
 
     if (verbose) print(paste("Iter: ", i, " OWI: ", round(owi_error,3)))
 

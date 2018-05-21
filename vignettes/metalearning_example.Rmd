@@ -132,10 +132,10 @@ head(pred)
 
 The output of `predict_selection_ensemble` produces probabilities for each class instead of 
 just the selected class (which would be the one with max probability, usually ;) )
-To show the performance of the metalearning model, we have the function `summary_performance`, that requires as input the class probabilities, the errors and labels produced on the test set. Additionally, if the whole dataset is provided (in the format of the output of `process_forecast_dataset`), the OWI error of the weighted forecasting method will be also calculated. This is, using the probability predictions to create a linear combination of the individual methods forecasts, instead of selecting the one with highest probability.
+***OUTDATED*** To show the performance of the metalearning model, we have the function `summary_performance`, that requires as input the class probabilities, the errors and labels produced on the test set. Additionally, if the whole dataset is provided (in the format of the output of `process_forecast_dataset`), the OWI error of the weighted forecasting method will be also calculated. This is, using the probability predictions to create a linear combination of the individual methods forecasts, instead of selecting the one with highest probability.
 
 ````{r}
-summary_performance(pred, test_data$errors, test_data$labels, dataset = feat_forec_M1)
+summary_performance(pred, dataset = feat_forec_M1)
 ```
 
 ### Results and comparison
@@ -147,7 +147,7 @@ rforest <- randomForest::randomForest(train_data$data, y=as.factor(train_data$la
 #test
 pred_forest <- predict(rforest, newdata=test_data$data, type="prob")
 #show performance
-summary_performance(pred_forest, test_data$errors, test_data$labels, dataset = feat_forec_M1)
+summary_performance(pred_forest, dataset = feat_forec_M1)
 ```
 
 The important output of `summary_performance` is 'Classification error', which is the error in the classification problem of selecting the best forecasting method, and 'Selected OWI' which is the average OWI error produced by the methods selected by the classifier *(a more important measure!)*. 'Weighted OWI' is the error of the method created via the aforementioned combination of all individual methods by their probabilities. Either 'Selected OWI' or 'Weighted OWI" are the *real* performance measures (whichever is best), though 'Weighted' may not be available if there are restrictions on computing time.

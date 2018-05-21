@@ -78,22 +78,35 @@ test_data <- M4metalearning::create_feat_classif_problem(M4metalearning::feat_fo
 
 meta_preds <- predict_selection_ensemble(tempcross_model, test_data$data)
 
-summary_performance(meta_preds, errors = test_data$errors,
-                                    labels = test_data$labels,
-                                    dataset = M4metalearning::feat_forec_M3)
+summary_performance(meta_preds, dataset = M4metalearning::feat_forec_M3)
 ````
 
 We will now apply a transformation to the errors produced in the temporal crossvalidated dataset to turn them into probabilities of each class: softmax transform but previously inverting the sign of the errors, so higher is better. This will be the predictions of the "temporal cv dataset".
 ````{r}
-preds <- t(sapply(forec_tempcross_M3, function(seriesdata) {
+cv_preds <- t(sapply(forec_tempcross_M3, function(seriesdata) {
  exp(-seriesdata$errors) / sum(exp(-seriesdata$errors) )
 }))
 
-summary_performance(preds, errors = test_data$errors,
-                                    labels = test_data$labels,
-                                    dataset = M4metalearning::feat_forec_M3)
+summary_performance(cv_preds, dataset = M4metalearning::feat_forec_M3)
 ````
 
 The results are somehow surprising, **the metalearning approach produces less forecasting error than the actual temporal crossvalidated errors**, ***even though the metalearning was trained on it!*** This happens for both selection and weighting methods!.
 
 #### Hence the name MetaBooting, because metalearning is pulling itself from its own bootstraps by improving over the dataset it was trained from!
+
+#What if we augment the data?
+
+Add M1 to the training set
+
+````{r}
+
+data(feat_forec_M1)
+#refactor the data as a set of matrices
+train_data <- create_feat_classif_problem(append(feat_forec_tempcross_M3, feat_forec_M1))
+#traning the mode
+tempcross_model <- train_selection_ensemble(train_data$data,
+                                            train_data$errors)
+meta_preds <- predict_selection_ensemble(tempcross_model, test_data$data)
+
+summary_performance(meta_preds, dataset = M4metalearning::feat_forec_M3)
+````

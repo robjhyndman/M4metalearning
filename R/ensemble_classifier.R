@@ -85,20 +85,23 @@ create_feat_classif_problem <- function(dataset) {
 #' @param labels A numeric vector from 0 to (nclass -1) with the targe labels for classification.
 #'
 #' @export
-train_selection_ensemble <- function(data, errors) {
+train_selection_ensemble <- function(data, errors, param=NULL) {
 
   check_customxgboost_version()
 
   dtrain <- xgboost::xgb.DMatrix(data)
   attr(dtrain, "errors") <- errors
 
-  param <- list(max_depth=10, eta=0.1, nthread = 2, silent=1,
-                objective=error_softmax_obj,
-                num_class=ncol(errors),
-                subsample=0.6,
-                colsample_bytree=0.6)
+  if (is.null(param)) {
+    param <- list(max_depth=10, eta=0.4, nthread = 3, silent=1,
+                  objective=error_softmax_obj,
+                  num_class=ncol(errors),
+                  subsample=0.9,
+                  colsample_bytree=0.6
+    )
+  }
 
-  bst <- xgboost::xgb.train(param, dtrain, 100)
+  bst <- xgboost::xgb.train(param, dtrain, 200)
   bst
 }
 
@@ -123,34 +126,45 @@ predict_selection_ensemble <- function(model, newdata) {
 #' @param print.summary Boolean indicating wheter to print the information
 #'
 #' @export
+summary_performance <- function(predictions, dataset, print.summary = TRUE) {
 
-summary_performance <- function(predictions, errors, labels, dataset=NULL, print.summary = TRUE) {
-
+  labels <- sapply(dataset, function(lentry) which.min(lentry$errors) - 1)
   max_predictions <- apply(predictions, 1, which.max) - 1
   class_error <- 1 - mean(max_predictions == labels)
-  selected_error <- mean( sapply(1:nrow(errors),
-                                 function (x) errors[x,max_predictions[x] + 1]) )
-  oracle_error <- mean( sapply(1:nrow(errors),
-                               function (x) errors[x,labels[x] + 1]) )
-  single_error <- min(colMeans(errors))
-  average_error <- mean(errors)
+  n_methods <- length(dataset[[1]]$errors)
+
+  #selected_error <- mean( sapply(1:nrow(errors),
+  #                               function (i) errors[i,max_predictions[i] + 1]) )
+  #oracle_error <- mean( sapply(1:nrow(errors),
+  #                             function (i) errors[i,labels[i] + 1]) )
+  #single_error <- min(colMeans(errors))
+  #average_error <- mean(errors)
 
   #calculate the weighted prediction
-  weighted_error <- NULL
-  naive_weight_error <- NULL
-  if (!is.null(dataset)) {
 
     for (i in 1:length(dataset)) {
       weighted_ff <- t(predictions[i,]) %*% dataset[[i]]$ff
       naive_combi_ff <- colMeans(dataset[[i]]$ff)
-      dataset[[i]]$ff <- rbind(weighted_ff, naive_combi_ff)
+      selected_ff <- dataset[[i]]$ff[max_predictions[i]+1,]
+      oracle_ff <- dataset[[i]]$ff[labels[i]+1,]
+      dataset[[i]]$ff <- rbind(dataset[[i]]$ff,
+                               weighted_ff,
+                               naive_combi_ff,
+                               selected_ff,
+                               oracle_ff)
     }
+
     dataset <- fast_errors_dataset(dataset)
-    combi_error <- sapply(dataset, function (lentry) {
+    all_errors <- sapply(dataset, function (lentry) {
       lentry$errors})
-    weighted_error <- mean(combi_error[1,])
-    naive_weight_error  <- mean(combi_error[2,])
-  }
+
+    all_errors <- rowMeans(all_errors)
+    weighted_error <- all_errors[n_methods + 1]
+    naive_weight_error  <- all_errors[n_methods + 2]
+    selected_error  <- all_errors[n_methods + 3]
+    oracle_error <-  all_errors[n_methods + 4]
+    single_error <- min(all_errors[1:n_methods])
+    average_error <- mean(all_errors[1:n_methods])
 
 
 
@@ -166,7 +180,7 @@ summary_performance <- function(predictions, errors, labels, dataset=NULL, print
     print(paste("Average OWI: ", round(average_error,3)))
 
   }
-  weighted_error
+  list(selected_error = selected_error, weighted_error = weighted_error)
 }
 
 

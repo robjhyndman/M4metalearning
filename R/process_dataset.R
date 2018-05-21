@@ -96,8 +96,11 @@ fast_errors_dataset <- function(dataset) {
   for (i in 1:length(dataset)) {
     lentry <- dataset[[i]]
     dataset[[i]]$errors <- 0.5*(rowMeans(lentry$mase_err)/avg_snaive_errors$avg_mase +
-    rowMeans(lentry$smape_err)/avg_snaive_errors$avg_smape)
+                                  rowMeans(lentry$smape_err)/avg_snaive_errors$avg_smape)
+    #dataset[[i]]$errors <- rowMeans(lentry$mase_err)
   }
+  attr(dataset, "avg_snaive_errors") <- avg_snaive_errors
+  print("WARNING! Returning mase errors")
   dataset
 }
 
@@ -253,7 +256,9 @@ process_forecast_dataset <- function(dataset, methods_list, n.cores=1) {
     seriesdata
   })
 
-  ret_list <- fast_errors_dataset(ret_list)
+  if (!is.null(res_list[[1]]$xx)) { #check whether there are true forecasts for computing the errors
+    ret_list <- fast_errors_dataset(ret_list)
+  }
 
   if (n.cores > 1) {
     parallel::stopCluster(cl)

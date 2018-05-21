@@ -10,14 +10,13 @@ Trains a metalearning model by performing search on the hyperparameters}
 \usage{
 metatemp_train(train_dataset, eval_dataset, obj_fun = c("select",
   "combi:smax_abs", "combi:smax_sq", "combi:square"),
-  filename = "meta_results.RData", verbose = FALSE)
+  filename = "meta_results.RData", verbose = FALSE, n.cores = 3)
 
-train_selection_ensemble(data, errors)
+train_selection_ensemble(data, errors, param = NULL)
 
 predict_selection_ensemble(model, newdata)
 
-summary_performance(predictions, errors, labels, dataset = NULL,
-  print.summary = TRUE)
+summary_performance(predictions, dataset, print.summary = TRUE)
 }
 \arguments{
 \item{train_dataset}{A list with elements in the metalearning format.
@@ -53,11 +52,11 @@ Each row is a vector with the errors of the forecasting methods.}
 \item{predictions}{A NXM matrix with N the number of observations(time series)
 and M the number of methods.}
 
-\item{labels}{A numeric vector from 0 to (nclass -1) with the targe labels for classification.}
-
 \item{dataset}{The list with the meta information, if given additional details will be provided}
 
 \item{print.summary}{Boolean indicating wheter to print the information}
+
+\item{labels}{A numeric vector from 0 to (nclass -1) with the targe labels for classification.}
 
 \item{errors}{The NXM matrix with the erros per series and per method}
 
