@@ -160,7 +160,7 @@ create_combi_info <- function(dataset) {
 
 
 
-train_combination_ensemble <- function(dataset, test_dataset=NULL) {
+train_combination_ensemble <- function(dataset, params=NULL) {
 
   check_customxgboost_version()
 
@@ -172,14 +172,14 @@ train_combination_ensemble <- function(dataset, test_dataset=NULL) {
   attr(dtrain, "ew") <- train_data$ew
 
 
-  if (is.null(test_dataset)) {
-    test_dataset = dataset
-  }
-  test_data <- create_combi_info(test_dataset)
-  dtest <- xgboost::xgb.DMatrix(test_data$data)
-  attr(dtest, "ff") <- test_data$ff
-  attr(dtest, "xx") <- test_data$xx
-  attr(dtest, "ew") <- test_data$ew
+  # if (is.null(test_dataset)) {
+  #   test_dataset = dataset
+  # }
+  # test_data <- create_combi_info(test_dataset)
+  # dtest <- xgboost::xgb.DMatrix(test_data$data)
+  # attr(dtest, "ff") <- test_data$ff
+  # attr(dtest, "xx") <- test_data$xx
+  # attr(dtest, "ew") <- test_data$ew
 
 
   param <- list(max_depth=4, eta=0.019*6, nthread = 2, silent=0,

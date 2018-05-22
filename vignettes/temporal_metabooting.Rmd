@@ -94,19 +94,43 @@ The results are somehow surprising, **the metalearning approach produces less fo
 
 #### Hence the name MetaBooting, because metalearning is pulling itself from its own bootstraps by improving over the dataset it was trained from!
 
-#What if we augment the data?
+#Other models
 
-Add M1 to the training set
+````{r}
+tcf <- randomForest::randomForest(train_data$data, as.factor(train_data$labels))
+forest_preds <- predict(tcf, newdata=test_data$data, type="prob")
+summary_performance(forest_preds, dataset = M4metalearning::feat_forec_M3)
+````
+
+We see that the randomForest model produces very similar results to the training set
+
+The results on the training
+
+How well do they extrapolate?
 
 ````{r}
 
-data(feat_forec_M1)
-#refactor the data as a set of matrices
-train_data <- create_feat_classif_problem(append(feat_forec_tempcross_M3, feat_forec_M1))
-#traning the mode
-tempcross_model <- train_selection_ensemble(train_data$data,
-                                            train_data$errors)
+test_data <- create_feat_classif_problem(M4metalearning::feat_forec_M1)
 meta_preds <- predict_selection_ensemble(tempcross_model, test_data$data)
+summary_performance(meta_preds, dataset = M4metalearning::feat_forec_M1)
 
-summary_performance(meta_preds, dataset = M4metalearning::feat_forec_M3)
+forest_preds <- predict(tcf, newdata=test_data$data, type="prob")
+summary_performance(forest_preds, dataset = M4metalearning::feat_forec_M1)
 ````
+
+
+<!-- #What if we augment the data? -->
+
+<!-- Add M1 to the training set -->
+
+<!-- ````{r} -->
+
+<!-- data(feat_forec_M1) -->
+<!-- #refactor the data as a set of matrices -->
+<!-- train_data <- create_feat_classif_problem(append(feat_forec_tempcross_M3, feat_forec_M1)) -->
+<!-- #traning the mode -->
+<!-- tempcross_model <- train_selection_ensemble(train_data$data, -->
+<!--                                             train_data$errors) -->
+<!-- meta_preds <- predict_selection_ensemble(tempcross_model, test_data$data) -->
+
+<!-- ```` -->

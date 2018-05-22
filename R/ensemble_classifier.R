@@ -220,8 +220,10 @@ create_tempcv_dataset <- function(dataset) {
         warning( paste( "cannot subset series by",
                         2 - seriesentry$h,
                         " observations, adding a mean constant") )
+
         seriesentry$x <- stats::ts(c(seriesentry$x, rep(mean(seriesentry$x),2 - seriesentry$h )),
                           frequency = stats::frequency(seriesentry$x))
+        seriesentry$h <- 2
       }
     }
     #note: we get first the tail, if we subset first, problems will arise (a temp variable for x should be used)
