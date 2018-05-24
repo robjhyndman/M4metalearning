@@ -58,6 +58,7 @@ fast_errors_dataset <- function(dataset) {
 
   total_snaive_errors <- c(0,0)
   for (i in 1:length(dataset)) {
+    tryCatch({
     lentry <- dataset[[i]]
     insample <- lentry$x
 
@@ -87,6 +88,10 @@ fast_errors_dataset <- function(dataset) {
     dataset[[i]] <- lentry
     total_snaive_errors <- total_snaive_errors + c(mean(lentry$snaive_mase),
                                                    mean(lentry$snaive_smape))
+    } , error = function (e) {
+      print(paste("Error when processing OWIs in series: ", i))
+      print(error)
+    })
   }
   total_snaive_errors = total_snaive_errors / length(dataset)
   avg_snaive_errors <- list(avg_mase=total_snaive_errors[1],
@@ -97,7 +102,7 @@ fast_errors_dataset <- function(dataset) {
     lentry <- dataset[[i]]
     dataset[[i]]$errors <- 0.5*(rowMeans(lentry$mase_err)/avg_snaive_errors$avg_mase +
                                   rowMeans(lentry$smape_err)/avg_snaive_errors$avg_smape)
-    #dataset[[i]]$errors <- rowMeans(lentry$mase_err)
+    #dataset[[i]]$errors <- rowMeans(lentry$smape_err)
   }
   attr(dataset, "avg_snaive_errors") <- avg_snaive_errors
   print("WARNING! Returning mase errors")

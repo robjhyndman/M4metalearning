@@ -32,6 +32,8 @@ error_softmax_obj <- function(preds, dtrain) {
 
   grad <- preds*(errors - rowsumerrors)
   hess <- errors*preds*(1.0-preds) - grad*preds
+  #hess <- grad*(1.0 - 2.0*preds)
+  #hess <- pmax(hess, 1e-16)
   #the true hessian should be grad*(1.0 - 2.0*preds) but it produces numerical problems
   #what we use here is a upper bound
 
@@ -213,7 +215,8 @@ summary_performance <- function(predictions, dataset, print.summary = TRUE) {
 #' @export
 create_tempcv_dataset <- function(dataset) {
   lapply(dataset, function(seriesentry) {
-    if (length(seriesentry$x) - seriesentry$h < max(2 * stats::frequency(seriesentry$x) +1, 7)) {
+    frq <- stats::frequency(seriesentry$x)
+    if (length(seriesentry$x) - seriesentry$h < max(2 * frq +1, 7)) {
       length_to_keep <- max(2 * stats::frequency(seriesentry$x) +1, 7)
       seriesentry$h <- length(seriesentry$x) - length_to_keep
       if (seriesentry$h < 2) {
@@ -222,13 +225,14 @@ create_tempcv_dataset <- function(dataset) {
                         " observations, adding a mean constant") )
 
         seriesentry$x <- stats::ts(c(seriesentry$x, rep(mean(seriesentry$x),2 - seriesentry$h )),
-                          frequency = stats::frequency(seriesentry$x))
+                          frequency = frq)
         seriesentry$h <- 2
       }
     }
     #note: we get first the tail, if we subset first, problems will arise (a temp variable for x should be used)
     seriesentry$xx <- utils::tail(seriesentry$x, seriesentry$h)
-    seriesentry$x <- utils::head(seriesentry$x, -seriesentry$h)
+    seriesentry$x <- stats::ts( utils::head(seriesentry$x, -seriesentry$h),
+                                frequency = frq)
     if (!is.null(seriesentry$n)) {
       seriesentry$n <- length(seriesentry$x)
     }

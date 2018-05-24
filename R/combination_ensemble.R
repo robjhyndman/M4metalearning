@@ -72,7 +72,7 @@ combi_forec_absolute_obj <- function(preds, dtrain) {
 }
 
 
-combi_softmax_abs <- function(preds, dtrain) {
+DEPRECATED_old_combi_softmax_abs <- function(preds, dtrain) {
   ff <- attr(dtrain, "ff")
   xx <- attr(dtrain, "xx")
   ew <- attr(dtrain, "ew")
@@ -92,6 +92,38 @@ combi_softmax_abs <- function(preds, dtrain) {
 
   return(list(grad = t(grad), hess = t(hess)))
 }
+
+combi_softmax_abs <- function(preds, dtrain) {
+  ff <- attr(dtrain, "ff")
+  xx <- attr(dtrain, "xx")
+  ew <- attr(dtrain, "ew")
+  #lambda <- attr(dtrain, "lambda")
+
+  a = preds
+
+  preds <- exp(preds)
+  sp <- rowSums(preds)
+  preds <- preds / replicate(ncol(preds), sp)
+
+  S <- rowSums(preds * ff)
+  Sxx <-  ew*(S - xx)
+  GradSxx <- ew*(preds*(ff - S))
+  grad = smooth_sign( Sxx )*GradSxx
+  HesSxx = ew*( preds*(1-preds)*ff - preds*(1-preds)*S - preds*GradSxx/ew)
+
+  hess = 2 * sigmoid_clamp(Sxx)*(1 - sigmoid_clamp(Sxx))*GradSxx*GradSxx +
+    smooth_sign(Sxx)*( HesSxx)
+  hess = pmax(hess, 1e-16)
+  #hess[(hess > -1e-13) & (hess < 0)] <- -1e-13
+  #hess[(hess < 1e-16) ] <- 1e-16
+
+
+  #print( mean(abs(Sxx)))
+
+  return(list(grad = t(grad), hess = t(hess)))
+}
+
+
 
 fair_obj <- function(preds, dtrain) {
   ff <- attr(dtrain, "ff")
@@ -127,7 +159,7 @@ calc_external_weight <- function(insample, h) {
     forecastsNaiveSD <- c(forecastsNaiveSD, insample[j-frq])
   }
   masep<-mean(abs(insample-forecastsNaiveSD),na.rm = TRUE)
-  1 / (masep )
+  1 / (masep *h *0.25)
 }
 
 
