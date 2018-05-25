@@ -124,6 +124,55 @@ combi_softmax_abs <- function(preds, dtrain) {
 }
 
 
+#' @export
+combi_softmax_owi <- function(preds, dtrain) {
+  ff <- attr(dtrain, "ff")
+  xx <- attr(dtrain, "xx")
+  ew <- attr(dtrain, "ew")
+  eh <- attr(dtrain, "eh")
+  avg_mase <- attr(dtrain, "avg_mase")
+  avg_smape <- attr(dtrain, "avg_smape")
+
+  preds <- exp(preds)
+  sp <- rowSums(preds)
+  preds <- preds / replicate(ncol(preds), sp)
+
+  S <- rowSums(preds * ff)
+  Sxx <-  (S - xx)
+  GradSxx = preds*(ff - S)
+  D = abs(xx) + abs(S)
+  GradD = GradSxx   #smooth_sign(S)* GradSxx #always positive
+
+  gradMASE = smooth_sign( Sxx )*GradSxx
+  gradSMAPE =  (gradMASE * D  - abs(Sxx)*GradD) / D^2
+
+  HesSxx = GradSxx*(1 - 2*preds)
+  #note, S could alway be positive, and maybe the derivative could be set to 1 instead of sigmooth_sign
+  #the second derivative to 0 instead of sclamp(1-sclamp)
+  HesD = HesSxx
+
+  hessMASE = 2 * sigmoid_clamp(Sxx)*(1 - sigmoid_clamp(Sxx))*GradSxx*GradSxx +
+    smooth_sign(Sxx)*( HesSxx)
+
+
+  hterm1= (hessMASE*D - smooth_sign(Sxx)*GradSxx*GradD) / D^2
+
+  ht2 = smooth_sign(Sxx)*GradSxx*GradD + abs(Sxx)*HesD
+
+  hterm2 = - ( ht2*D^2 - abs(Sxx)*GradD*2*D*GradD) / D^4
+
+
+  hessSMAPE = hterm1 + hterm2
+
+  grad = 0.5*(ew*gradMASE / avg_mase + eh*gradSMAPE/avg_smape)
+  hess = 0.5*(ew*hessMASE / avg_mase + eh*hessSMAPE/avg_smape)
+
+  hess <- pmax(hess, 1e-16)
+  return(list(grad = t(grad), hess = t(hess)))
+}
+
+
+
 
 fair_obj <- function(preds, dtrain) {
   ff <- attr(dtrain, "ff")
@@ -159,7 +208,7 @@ calc_external_weight <- function(insample, h) {
     forecastsNaiveSD <- c(forecastsNaiveSD, insample[j-frq])
   }
   masep<-mean(abs(insample-forecastsNaiveSD),na.rm = TRUE)
-  1 / (masep *h *0.25)
+  c( 1 / (masep *h ), 1/h)
 }
 
 
@@ -186,8 +235,9 @@ create_combi_info <- function(dataset) {
 
   ff <- forec_true_w[, 1:nrow(dataset[[1]]$ff)]
   xx <- forec_true_w[, nrow(dataset[[1]]$ff) + 1]
-  ew <- forec_true_w[, ncol(forec_true_w)]
-  list(data=data, ff=ff, xx=xx, ew=ew)
+  ew <- forec_true_w[, ncol(forec_true_w) - 1]
+  eh <- forec_true_w[, ncol(forec_true_w) ]
+  list(data=data, ff=ff, xx=xx, ew=ew, eh=eh)
 }
 
 

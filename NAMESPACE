@@ -2,6 +2,7 @@
 
 export(auto_arima_forec)
 export(calc_subset_methods)
+export(combi_softmax_owi)
 export(create_combi_info)
 export(create_feat_classif_problem)
 export(create_forec_method_list)
