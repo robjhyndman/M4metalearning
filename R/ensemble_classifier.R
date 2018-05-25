@@ -21,6 +21,7 @@ softmax_transform <- function(x) {
 
 # user defined objective function for xgboost
 # minimizes de class probabilities * owi_errors
+#' @export
 error_softmax_obj <- function(preds, dtrain) {
   labels <- xgboost::getinfo(dtrain, "label")
   errors <- attr(dtrain, "errors")
