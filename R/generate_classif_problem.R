@@ -2,17 +2,17 @@
 #'
 #'  For each series in \code{dataset}, the feature set used in
 #'   (Talagala, Hyndman and Athanasopoulos, 2018) is calculated
-#'    and added to the \code{forec_err_dataset}. A \code{tibble} named \code{THA_features}
+#'    and added to the \code{forec_err_dataset}. A \code{tibble} named \code{features}
 #'     is added.
 #' @param dataset A list the elements having a \code{ts} object with the name \code{x}
 #' @param n.cores The number of cores to be used. \code{n.cores > 1} means parallel processing.
 #'
 #' @examples
-#' processed <- generate_THA_feature_dataset(Mcomp::M3[c(1:3)], n.cores=1)
-#' processed[[1]]$THA_features
+#' processed <- generate_THA_features(Mcomp::M3[c(1:3)], n.cores=1)
+#' processed[[1]]$features
 #'
 #' @export
-generate_THA_feature_dataset <-
+THA_features <-
   function(dataset, n.cores=1) {
     list_process_fun <- lapply
     cl = -1
@@ -39,7 +39,7 @@ generate_THA_feature_dataset <-
                                          "crossing_points",
                                          "entropy",
                                          "flat_spots",
-                                         "heterogeneity",
+                                         "heterogeneity_tsfeat_workaround",
                                          "holt_parameters",
                                          "hurst",
                                          "lumpiness",
@@ -47,7 +47,7 @@ generate_THA_feature_dataset <-
                                          "pacf_features",
                                          "stl_features",
                                          "stability",
-                                         "hw_parameters",
+                                         "hw_parameters_tsfeat_workaround",
                                          "unitroot_kpss",
                                          "unitroot_pp"
                                        )
@@ -78,7 +78,7 @@ generate_THA_feature_dataset <-
                                       "trough" = 0,
                                       .before=33)
                                     }
-                                    serdat$THA_features <- featrow
+                                    serdat$features <- featrow
                                     serdat
                                  }, error = function(e) {
                                    print(e)
@@ -93,4 +93,18 @@ generate_THA_feature_dataset <-
     dataset_feat
   }
 
+#' @export
+heterogeneity_tsfeat_workaround <- function(x) {
+  output <- c(arch_acf =0, garch_acf=0, arch_r2=0, garch_r2=0)
+  try( output <- tsfeatures::heterogeneity(x) )
+  output
+}
 
+#' @export
+hw_parameters_tsfeat_workaround <- function(x) {
+  hw_fit <- NULL
+  hw_fit$par <- c(NA, NA, NA)
+  try(hw_fit <- forecast::ets(x, model=c("AAA")), silent=TRUE)
+  names(hw_fit$par) <- c("hw_alpha", "hw_beta" , "hw_gamma")
+  hw_fit$par[1:3]
+}

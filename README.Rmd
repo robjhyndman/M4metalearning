@@ -10,8 +10,8 @@ knitr::opts_chunk$set(
   comment = "#>",
   fig.path = "README-"
 )
-rmarkdown::render("vignettes/temporal_metabooting.Rmd", output_format = "github_document")
-file.rename("vignettes/temporal_metabooting.md", "docs/temporal_metabooting.md")
+# rmarkdown::render("vignettes/temporal_metabooting.Rmd", output_format = "github_document")
+# file.rename("vignettes/temporal_metabooting.md", "docs/temporal_metabooting.md")
 options(knitr.duplicate.label = 'allow')
 ```
 
@@ -51,7 +51,7 @@ devtools::install_github("pmontman/customxgboost")
 # Table of Contents
 [Example of metalearning process](#basic_example)
 
-[Studying metalearning on a temporal crossvalidation dataset](docs/temporal_metabooting.md)
+<!-- [Studying metalearning on a temporal crossvalidation dataset](docs/temporal_metabooting.md) -->
 
 ##<a name="basic_example"></a> Example
 

@@ -53,8 +53,14 @@ mase_cal <- function(insample, outsample, forecasts) {
 }
 
 
+##-#'   \item{xx}{A time series of length \code{h} with the true future data.}
+##-#
+##-#'   \item{errors}{A vector of F elements containing the OWI errors produced by each of the
+##-#'   methods in \code{methods}}
+##-#'   }
+
 #' @export
-fast_errors_dataset <- function(dataset) {
+calc_errors <- function(dataset) {
 
   total_snaive_errors <- c(0,0)
   for (i in 1:length(dataset)) {
@@ -69,7 +75,7 @@ fast_errors_dataset <- function(dataset) {
     frq <- frq <- stats::frequency(insample)
     insample <- as.numeric(insample)
     outsample <- as.numeric(lentry$xx)
-    masep <- mean(abs(head(insample,-frq) - tail(insample,-frq)))
+    masep <- mean(abs(utils::head(insample,-frq) - utils::tail(insample,-frq)))
 
 
     repoutsample <- matrix(
@@ -90,7 +96,8 @@ fast_errors_dataset <- function(dataset) {
                                                    mean(lentry$snaive_smape))
     } , error = function (e) {
       print(paste("Error when processing OWIs in series: ", i))
-      print(error)
+      print(e)
+      e
     })
   }
   total_snaive_errors = total_snaive_errors / length(dataset)
@@ -105,7 +112,6 @@ fast_errors_dataset <- function(dataset) {
     #dataset[[i]]$errors <- rowMeans(lentry$smape_err)
   }
   attr(dataset, "avg_snaive_errors") <- avg_snaive_errors
-  print("WARNING! Returning mase errors")
   dataset
 }
 
@@ -153,14 +159,6 @@ calculate_owi <- function(insample, outsample, snaive_errors, forecasts) {
 #and list of forecast methods
 process_forecast_methods <- function(seriesdata, methods_list) {
 
-  #calc the snaive errors first, they will be used for the owi error of all the methods
-  forecast_snaive <- snaive_forec(seriesdata$x, h=seriesdata$h)
-  snaive_errors <- calculate_errors(seriesdata$x, seriesdata$xx, forecast_snaive)
-
-  #clamp snaive errors to a very small number
-  snaive_errors[snaive_errors < 0.0001] <- 0.0001
-
-
   #process each method in methods_list to produce the forecasts and the errors
   lapply(methods_list, function (mentry) {
     method_name <- mentry
@@ -172,25 +170,25 @@ process_forecast_methods <- function(seriesdata, methods_list) {
                              print(paste("The forecast method that produced the error is:",
                                          method_name))
                              print("Returning snaive forecasts instead")
-                             forecast_snaive
+                             snaive_forec(seriesdata$x, seriesdata$h)
                            })
     list( forecasts=forecasts, method_name=method_name)
   })
 }
 
 
-#' Generate Forecast and Errors for a time series dataset
+#' Generate Forecasts for a Time Series Dataset
 #'
-#' For each series in \code{dataset}, forecasts and
-#' owi errors are generated for all methods in \code{methods_list}.
+#' For each series in \code{dataset}, forecasts
+#' are generated for all methods in \code{methods}.
 #'
 #' \code{dataset} must be a list with each element having the following format:
 #' \describe{
 #'   \item{x}{A time series object \code{ts} with the historical data.}
 #'   \item{h}{The number of required forecasts.}
-#'   \item{xx}{A time series of length code{h} with the true future data.}
 #' }
-#' \code{methods_list} is a list of strings with the names of the functions that generate the
+#'
+#' \code{methods} is a list of strings with the names of the functions that generate the
 #' forecasts. The functions must exist and take as parameters (\code{x}, \code{h}), with
 #' \code{x} being the \code{ts} object with the input series and \code{h} the number of required
 #' forecasts (after the last observation of \code{x}). The output of these functions must be
@@ -198,7 +196,7 @@ process_forecast_methods <- function(seriesdata, methods_list) {
 #' No additional parameters are required in the functions.
 #'
 #' @param dataset The list containing the series. See details for the required format.
-#' @param methods_list A list of strings with the names of the functions that generate
+#' @param methods A list of strings with the names of the functions that generate
 #' the forecasts.
 #' @param n.cores The number of cores to be used. \code{n.cores > 1} means parallel processing.
 #'
@@ -206,12 +204,10 @@ process_forecast_methods <- function(seriesdata, methods_list) {
 #' \describe{
 #'   \item{x}{A time series object \code{ts} with the historical data.}
 #'   \item{h}{The number of required forecasts.}
-#'   \item{xx}{A time series of length \code{h} with the true future data.}
+
 #'   \item{ff}{A matrix with F rows and \code{h} columns. Each row contains
-#'   the forecasts of each method in \code{methods_list}}
-#'   \item{errors}{A vector of F elements containing the OWI errors produced by each of the
-#'   methods in \code{methods_list}}
-#'   }
+#'   the forecasts of each method in \code{methods} }
+#' }
 #'
 #' @examples
 #' auto_arima_forec <- function(x, h) {
@@ -229,16 +225,16 @@ process_forecast_methods <- function(seriesdata, methods_list) {
 #' }
 #'
 #' create_example_list <- function() {
-#'   methods_list <- list("auto_arima_forec")
-#'   methods_list <- append(methods_list, "snaive_forec")
-#'   methods_list <- append(methods_list, "rw_drift_forec")
-#'   methods_list
+#'   methods <- list("auto_arima_forec")
+#'   methods <- append(methods, "snaive_forec")
+#'   methods <- append(methods, "rw_drift_forec")
+#'   methods
 #' }
 #' methods <- create_example_list()
-#' forec_results <- process_forecast_dataset(Mcomp::M3[1:4], methods, n.cores=1)
+#' forec_results <- calc_forecasts(Mcomp::M3[1:4], methods, n.cores=1)
 #'
 #' @export
-process_forecast_dataset <- function(dataset, methods_list, n.cores=1) {
+calc_forecasts <- function(dataset, methods, n.cores=1) {
   list_process_fun <- lapply
   cl = -1
 
@@ -253,17 +249,13 @@ process_forecast_dataset <- function(dataset, methods_list, n.cores=1) {
   }
 
   ret_list <- list_process_fun(dataset, function (seriesdata) {
-    results <- process_forecast_methods(seriesdata, methods_list)
+    results <- process_forecast_methods(seriesdata, methods)
     ff <- t(sapply(results, function (resentry) resentry$forecasts))
     method_names <- sapply(results, function (resentry) resentry$method_name)
     row.names(ff) <- method_names
     seriesdata$ff <- ff
     seriesdata
   })
-
-  if (!is.null(ret_list[[1]]$xx)) { #check whether there are true forecasts for computing the errors
-    ret_list <- fast_errors_dataset(ret_list)
-  }
 
   if (n.cores > 1) {
     parallel::stopCluster(cl)
