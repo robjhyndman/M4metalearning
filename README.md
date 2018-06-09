@@ -1,5 +1,11 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
+This page contains the explanation of our forecast method for the M4 competition. The description is divided in three sections
+
+1.  [Methodology](docs/M4_methodology.md)
+2.  Reproducing the results
+3.  Usage example of the package
+
 M4metalearning
 ==============
 
@@ -188,8 +194,8 @@ round(head(train_data$data, n=3),2)
 round(head(train_data$errors, n=3),2)
 #>      auto_arima_forec ets_forec nnetar_forec tbats_forec stlm_ar_forec
 #> [1,]             0.14      0.19         0.28        0.19          0.56
-#> [2,]             0.93      0.89         1.97        1.00          1.96
-#> [3,]             1.59      1.46         2.25        1.52          1.37
+#> [2,]             0.93      0.89         1.96        1.00          1.96
+#> [3,]             1.59      1.46         2.00        1.52          1.37
 #>      rw_drift_forec thetaf_forec naive_forec snaive_forec
 #> [1,]           0.18         0.12        0.24         0.31
 #> [2,]           0.93         1.29        1.80         1.80
@@ -236,19 +242,19 @@ test_data <- create_feat_classif_problem(M4_test)
 preds <- predict_selection_ensemble(meta_model, test_data$data)
 head(preds)
 #>            [,1]       [,2]        [,3]        [,4]        [,5]       [,6]
-#> [1,] 0.03549662 0.59608973 0.017767929 0.026018564 0.009599963 0.02679113
-#> [2,] 0.03919843 0.49182872 0.019620883 0.028731947 0.010601109 0.02958509
-#> [3,] 0.01345237 0.08795006 0.006733619 0.009860413 0.003638156 0.01015320
-#> [4,] 0.01889741 0.15949218 0.009459148 0.013851555 0.005110752 0.01426285
-#> [5,] 0.04305412 0.38109439 0.021550857 0.031558116 0.011643869 0.03249517
-#> [6,] 0.01558230 0.08674109 0.007799763 0.011421626 0.004214190 0.01176077
+#> [1,] 0.03540898 0.57979797 0.018640823 0.026092393 0.009736449 0.02723483
+#> [2,] 0.03891117 0.47622926 0.020484532 0.028673115 0.010699453 0.02992855
+#> [3,] 0.01309077 0.08372003 0.006891551 0.009646411 0.003599585 0.01006877
+#> [4,] 0.01869751 0.15441560 0.009843181 0.013777940 0.005141277 0.01438120
+#> [5,] 0.04293398 0.37101202 0.022602311 0.031637464 0.011805609 0.03302269
+#> [6,] 0.01514641 0.08239214 0.007973730 0.011161185 0.004164828 0.01164987
 #>           [,7]       [,8]        [,9]
-#> [1,] 0.2420504 0.02727617 0.018909454
-#> [2,] 0.3294317 0.03012070 0.020881453
-#> [3,] 0.8507089 0.01033702 0.007166230
-#> [4,] 0.7543382 0.01452107 0.010066864
-#> [5,] 0.4225846 0.03308348 0.022935422
-#> [6,] 0.8422057 0.01197369 0.008300869
+#> [1,] 0.2566685 0.02732184 0.019098240
+#> [2,] 0.3440626 0.03002416 0.020987191
+#> [3,] 0.8558213 0.01010094 0.007060659
+#> [4,] 0.7592314 0.01442714 0.010084718
+#> [5,] 0.4307008 0.03312818 0.023156937
+#> [6,] 0.8476554 0.01168709 0.008169393
 ```
 
 The last step is calculating the actual forecasts by the linear combinations produced by the metalearning model. The function `ensemble_forecast` is provided for this task. It will take the `predictions` and the `dataset` in the output of format of `calc_forecasts` with the `ff` field and add the field `y_hat` with the actual forecasts to the elements `dataset`.
@@ -256,10 +262,10 @@ The last step is calculating the actual forecasts by the linear combinations pro
 ``` r
 M4_test <- ensemble_forecast(preds, M4_test)
 M4_test[[1]]$y_hat
-#>          [,1]     [,2]     [,3]     [,4]     [,5]    [,6]     [,7]
-#> [1,] 7887.066 7888.032 7888.029 7887.701 7886.918 7887.05 7887.268
-#>          [,8]     [,9]    [,10]    [,11]    [,12]    [,13]    [,14]
-#> [1,] 7887.487 7887.707 7887.929 7888.153 7888.378 7888.605 7888.833
+#>          [,1]     [,2]     [,3]     [,4]     [,5]     [,6]     [,7]
+#> [1,] 7887.085 7888.073 7888.076 7887.751 7886.965 7887.107 7887.335
+#>          [,8]     [,9]    [,10]    [,11]  [,12]    [,13]    [,14]
+#> [1,] 7887.565 7887.796 7888.029 7888.264 7888.5 7888.738 7888.977
 ```
 
 We have the forecasts!
@@ -275,7 +281,7 @@ In `M4metalearning` package we provide the function `summary_performance`, that 
 summary <- summary_performance(preds, dataset = M4_test)
 #> [1] "Classification error:  1"
 #> [1] "Selected OWI :  0.8144"
-#> [1] "Weighted OWI :  0.7645"
+#> [1] "Weighted OWI :  0.7663"
 #> [1] "Naive Weighted OWI :  0.7753"
 #> [1] "Oracle OWI:  0.472"
 #> [1] "Single method OWI:  0.634"

@@ -10,10 +10,17 @@ knitr::opts_chunk$set(
   comment = "#>",
   fig.path = "README-"
 )
-# rmarkdown::render("vignettes/temporal_metabooting.Rmd", output_format = "github_document")
+ rmarkdown::render("docs/M4_methodology.Rmd", output_format = "github_document")
 # file.rename("vignettes/temporal_metabooting.md", "docs/temporal_metabooting.md")
 options(knitr.duplicate.label = 'allow')
 ```
+
+This page contains the explanation of our forecast method for the M4 competition. The description is divided in three sections
+
+ 1. [Methodology](docs/M4_methodology.md)
+ 2. Reproducing the results
+ 3. Usage example of the package
+
 
 # M4metalearning
 
