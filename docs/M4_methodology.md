@@ -3,7 +3,7 @@ Combination of Forecast Methods by Feature-based Learning: Methodoly
 Pablo Montero-Manso
 2018-06-09
 
-This page explain the methodoly behind the sumbission. Is a part of the reproducibility. The second part is the technical description and how to reproduce the results. The page can be seen here *LINK!.*
+This page explains the methodoly behind the sumbission. Is a part of the reproducibility submission. The second part is the technical description and how to reproduce the results. [The reproducibility part can be seen here](M4_reprod.md).
 
 Authorship
 ==========
@@ -17,8 +17,6 @@ Overview
 ========
 
 This approach can be described as a linear combination of statistical forecasting methods, where the weights of the combination are calculated by a learning model based on gradient tree boosting over a set of features extracted from the individual series. This methodological description page is divided in 3 sections, the Forecasting methods, where the individual forecasting methods are described, the Learning model, where the method for generating the weights is explained, for both Mean and Interval predictions, and the Features, where the features used in the learning model are described.
-
-Tabla de contenidos con links
 
 Table of Contents
 -----------------

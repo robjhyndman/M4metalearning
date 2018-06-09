@@ -1,0 +1,25 @@
+---
+title: "Combination of Forecast Methods by Feature-based Learning: Methodoly"
+author: "Pablo Montero-Manso"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    number_sections: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, eval=TRUE,
+  comment = "#>"
+)
+```
+This page explains how to reproduce the results for our submission.
+The first part is the methodological description of our methods. [The methodology can be seen here](M4_methodology.md)
+
+
+#Authorship
+
+ * Pablo Montero-Manso
+ * Thiyanga Talagala
+ * Rob J Hyndman
+ * George Athanasopoulos

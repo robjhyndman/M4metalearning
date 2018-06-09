@@ -10,34 +10,36 @@ knitr::opts_chunk$set(
   comment = "#>",
   fig.path = "README-"
 )
- rmarkdown::render("docs/M4_methodology.Rmd", output_format = "github_document")
-# file.rename("vignettes/temporal_metabooting.md", "docs/temporal_metabooting.md")
 options(knitr.duplicate.label = 'allow')
+ rmarkdown::render("docs/M4_methodology.Rmd", output_format = "github_document")
+ rmarkdown::render("docs/M4_reprod.Rmd", output_format = "github_document")
+  rmarkdown::render("vignettes/metalearning_example.Rmd", output_format = "github_document")
+ file.rename("vignettes/metalearning_example.md", "docs/metalearning_example.md")
+
 ```
 
-This page contains the explanation of our forecast method for the M4 competition. The description is divided in three sections
+This page contains the explanation of our forecast method for the M4 competition. As part of our submission, we are producing the R package `M4metalearning` with see instalation instructions below. This package is intended to facilitate reproducing the results of our submission, but can also the used on its own to apply our approach to other datasets, either using the pretrained model submitted to the M4 competition or by training new models.
+
+The description is divided into three sections, the first t
 
  1. [Methodology](docs/M4_methodology.md)
- 2. Reproducing the results
- 3. Usage example of the package
+ 2. [Reproducing the results](docs/M4_reprod.md)
+ 3. [Usage example of the package](docs/metalearning_example.md)
 
 
 # M4metalearning
 
-The goal of M4Metalearning is to provide a forecasting metalearning tools, see the example for more information.
+The goal of the `M4Metalearning` package is to provide a forecasting metalearning tools based on our submission to the M4 competition.
 
 ## Installation
 
-You can install M4metalearning from github with:
+You can install `M4metalearning` from github with:
 
 ```{r gh-installation, eval = FALSE}
 # install.packages("devtools")
-devtools::install_github("robjhyndman/M4metalearning",
-                         auth_token = "AUTH_TOKEN_REQUIRED_WHILE_REPOSITORY_IS_PRIVATE")
+devtools::install_github("robjhyndman/M4metalearning)
 ```
 
-You will need and auth token from github, because the repository is private.
-See how to create personal tokens here: https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
 
 ### Note
 
@@ -55,12 +57,16 @@ Also, a custom version of the `xgboost` package is required. It is installed aut
 devtools::install_github("pmontman/customxgboost")
 ```
 
-# Table of Contents
-[Example of metalearning process](#basic_example)
+###Usage
 
-<!-- [Studying metalearning on a temporal crossvalidation dataset](docs/temporal_metabooting.md) -->
+For an example of the usage of the package [see this page](docs/metalearning_example.md)
 
-##<a name="basic_example"></a> Example
+<!-- # Table of Contents -->
+<!-- [Example of metalearning process](#basic_example) -->
 
-```{r test-main, child = 'vignettes/metalearning_example.Rmd'}
-```
+<!-- <!-- [Studying metalearning on a temporal crossvalidation dataset](docs/temporal_metabooting.md) --> -->
+
+<!-- ##<a name="basic_example"></a> Example -->
+
+<!-- ```{r test-main, child = 'vignettes/metalearning_example.Rmd'} -->
+<!-- ``` -->
