@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 )
 ```
 This page explains how to reproduce the results for our submission.
-The first part is the methodological description of our methods. [The methodology can be seen here](M4_methodology.md)
+The first part is the methodological description of our methods. [The methodology can be seen here](M4_methodology.html)
 
 
 #Authorship

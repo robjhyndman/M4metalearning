@@ -1,7 +1,7 @@
 Forecasting Metalearning Example
 ================
 Pablo Montero-Manso
-2018-06-09
+2018-06-10
 
 Intro
 =====
@@ -99,7 +99,6 @@ The `features` field is used by other functions in the package, so users may use
 
 ``` r
 M4_train <- THA_features(M4_train)
-#> Loading required package: tsfeatures
 ```
 
 Now we have in `M4_train` the series, its extracted features, forecasts and errors.
@@ -147,9 +146,9 @@ round(head(train_data$data, n=3),2)
 #> [3,]            51
 round(head(train_data$errors, n=3),2)
 #>      auto_arima_forec ets_forec nnetar_forec tbats_forec stlm_ar_forec
-#> [1,]             0.14      0.19         0.29        0.19          0.56
+#> [1,]             0.14      0.19         0.28        0.19          0.56
 #> [2,]             0.93      0.89         1.97        1.00          1.96
-#> [3,]             1.59      1.46         2.21        1.52          1.37
+#> [3,]             1.59      1.46         1.85        1.52          1.37
 #>      rw_drift_forec thetaf_forec naive_forec snaive_forec
 #> [1,]           0.18         0.12        0.24         0.31
 #> [2,]           0.93         1.29        1.80         1.80
@@ -196,19 +195,19 @@ test_data <- create_feat_classif_problem(M4_test)
 preds <- predict_selection_ensemble(meta_model, test_data$data)
 head(preds)
 #>            [,1]       [,2]        [,3]       [,4]        [,5]       [,6]
-#> [1,] 0.03474122 0.60048158 0.017065506 0.02545097 0.009365029 0.02612570
-#> [2,] 0.03935903 0.48207004 0.019333853 0.02883392 0.010609829 0.02959833
-#> [3,] 0.01381138 0.08823971 0.006784393 0.01011804 0.003723068 0.01038628
-#> [4,] 0.01922602 0.17241768 0.009444162 0.01408474 0.005182668 0.01445813
-#> [5,] 0.04355650 0.39716590 0.021395727 0.03190893 0.011741322 0.03275487
-#> [6,] 0.01601401 0.08708473 0.007866365 0.01173166 0.004316821 0.01204267
+#> [1,] 0.03544266 0.59221575 0.018394294 0.02593579 0.009564465 0.02668695
+#> [2,] 0.04346135 0.45394502 0.022555893 0.03180361 0.011728368 0.03272471
+#> [3,] 0.01355545 0.08789515 0.007035108 0.00991944 0.003658039 0.01020673
+#> [4,] 0.01865690 0.18112484 0.009682700 0.01365252 0.005034705 0.01404793
+#> [5,] 0.04535111 0.39114207 0.023536658 0.03318648 0.012238335 0.03414763
+#> [6,] 0.01630716 0.09787739 0.008463213 0.01193306 0.004400609 0.01227866
 #>           [,7]       [,8]        [,9]
-#> [1,] 0.2414065 0.02690370 0.018459820
-#> [2,] 0.3388018 0.03047974 0.020913499
-#> [3,] 0.8489029 0.01069557 0.007338703
-#> [4,] 0.7400821 0.01488868 0.010215785
-#> [5,] 0.4046026 0.03373027 0.023143836
-#> [6,] 0.8400334 0.01240129 0.008509076
+#> [1,] 0.2455148 0.02741168 0.018833656
+#> [2,] 0.3470730 0.03361340 0.023094658
+#> [3,] 0.8500430 0.01048391 0.007203147
+#> [4,] 0.7334570 0.01442942 0.009913978
+#> [5,] 0.4012239 0.03507497 0.024098849
+#> [6,] 0.8274624 0.01261211 0.008665363
 ```
 
 The last step is calculating the actual forecasts by the linear combinations produced by the metalearning model. The function `ensemble_forecast` is provided for this task. It will take the `predictions` and the `dataset` in the output of format of `calc_forecasts` with the `ff` field and add the field `y_hat` with the actual forecasts to the elements `dataset`.
@@ -216,10 +215,8 @@ The last step is calculating the actual forecasts by the linear combinations pro
 ``` r
 M4_test <- ensemble_forecast(preds, M4_test)
 M4_test[[1]]$y_hat
-#>          [,1]     [,2]     [,3]     [,4]     [,5]     [,6]     [,7]
-#> [1,] 7887.043 7887.986 7887.982 7887.662 7886.898 7887.026 7887.238
-#>          [,8]     [,9]    [,10]    [,11]    [,12]    [,13]    [,14]
-#> [1,] 7887.451 7887.666 7887.882 7888.099 7888.318 7888.539 7888.761
+#>  [1] 7887.068 7888.037 7888.039 7887.719 7886.945 7887.083 7887.306
+#>  [8] 7887.530 7887.756 7887.984 7888.213 7888.444 7888.676 7888.910
 ```
 
 We have the forecasts!
@@ -235,7 +232,7 @@ In `M4metalearning` package we provide the function `summary_performance`, that 
 summary <- summary_performance(preds, dataset = M4_test)
 #> [1] "Classification error:  1"
 #> [1] "Selected OWI :  0.8144"
-#> [1] "Weighted OWI :  0.7661"
+#> [1] "Weighted OWI :  0.7631"
 #> [1] "Naive Weighted OWI :  0.7753"
 #> [1] "Oracle OWI:  0.472"
 #> [1] "Single method OWI:  0.634"

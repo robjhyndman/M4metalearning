@@ -8,7 +8,7 @@ Additionaly, the authors have produced another R package `M4comp2018`, which fac
 
 The description is divided into three sections, the first t
 
-1.  [Methodology](docs/M4_methodology.md)
+1.  [Methodology](docs/M4_methodology.html)
 2.  [Reproducing the results](docs/M4_reprod.md)
 3.  [Usage example of the package](docs/metalearning_example.md)
 
@@ -46,12 +46,3 @@ devtools::install_github("pmontman/customxgboost")
 ### Usage
 
 For an example of the usage of the package [see this page](docs/metalearning_example.md)
-
-<!-- # Table of Contents -->
-<!-- [Example of metalearning process](#basic_example) -->
-<!-- <!-- [Studying metalearning on a temporal crossvalidation dataset](docs/temporal_metabooting.md) -->
---&gt;
-
-<!-- ##<a name="basic_example"></a> Example -->
-<!-- ```{r test-main, child = 'vignettes/metalearning_example.Rmd'} -->
-<!-- ``` -->

@@ -1,7 +1,7 @@
-Combination of Forecast Methods by Feature-based Learning: Methodoly
+Methodology: Combination of Forecast Methods by Feature-based Learning
 ================
 Pablo Montero-Manso
-2018-06-09
+2018-06-10
 
 This page explains the methodoly behind the sumbission. Is a part of the reproducibility submission. The second part is the technical description and how to reproduce the results. [The reproducibility part can be seen here](M4_reprod.md).
 
@@ -16,7 +16,11 @@ Authorship
 Overview
 ========
 
-This approach can be described as a linear combination of statistical forecasting methods, where the weights of the combination are calculated by a learning model based on gradient tree boosting over a set of features extracted from the individual series. This methodological description page is divided in 3 sections, the Forecasting methods, where the individual forecasting methods are described, the Learning model, where the method for generating the weights is explained, for both Mean and Interval predictions, and the Features, where the features used in the learning model are described.
+This approach can be described as a linear combination of statistical forecasting methods, where the weights of the combination are calculated by a learning model based on gradient tree boosting over a set of features extracted from the individual series.
+
+A basic flowchart of the process is included to support the detailed description.
+
+This methodological description page is divided in 3 sections, the Forecasting methods, where the individual forecasting methods are described, the Learning model, where the method for generating the weights is explained, for both Mean and Interval predictions, and the Features, where the features used in the learning model are described.
 
 Table of Contents
 -----------------
@@ -24,6 +28,11 @@ Table of Contents
 -   [The Forecasting Methods](#forecasting_methods)
 -   [The Learning model](#learning_model)
 -   [The Features](#features)
+
+Basic Flowchart
+===============
+
+![](M4meta_flowchart.png)
 
 <a name="forecasting_methods"></a>Forecasting methods
 =====================================================
@@ -112,7 +121,7 @@ The prediction intervals are also a linear combination of intervals of single me
 
 In the training set we calculate the 95% prediction intervals of the methods THETA, NAIVE and SEASONAL NAIVE, produced by their implementation in the `forecast` R package. For each of these methods, we get 'radius' of the interval, the difference from the upper bound to the mean forecast (we consider symmetric intervals). These radius are also vectors of length *h*, the forecasting horizon. Using the mean forecast produced by our approach described in the previous section, the MSIS is minimized.
 
-A set of weights *w* will be calculated per forecasting horizon. For a given series *x* we produce the mean combination forecast *c*, and the radius of the intervals of the *M* = 3 methods, *r*. We start by calculaing the denomitator of the MSIS error formula, common to al horizons:
+A set of weights *w* will be calculated per forecasting horizon. For a given series *x* we produce the mean combination forecast *c*, and the radius of the intervals of the *M* = 3 methods, *r*. *NOTE: This combination forecast *c* used for training the interval is based on a model trained on a disjoint subset of the training set, to avoid overfitting, the final combination *c* is based on all the training set.* We start by calculaing the denomitator of the MSIS error formula, common to al horizons:
 $$D = \\sum\_{t=1+m}^n x\_t - x\_{t-m} $$
 
 Since we will calculate one set of weights per horizon, we will simplify the MSIS formula and show the minimization of one horizon. This means that if we *w* from now are the forecast for one specific horizon, eg. 13, *x**x* would therefore 13th true future value of *x* in the training set. The weights are calculated by minimizing the following formula:
@@ -189,8 +198,6 @@ A set of 42 features is used in the metalearning model. For each series the foll
 40. *unitroot\_kpss* The statistic for the Kwiatkowski et al. unit root test with linear trend and lag 1.
 41. *unitroot\_pp* The statistic for the ''Z-alphaâ€ version of Phillips & Perron unit root test with constant trend and lag 1.
 42. *series\_length* The length of the series.
-
-!!! MOSTRAR UN GRAFICO DE LAS FEATURES
 
 <!-- Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format: -->
 <!-- - Never uses retina figures -->
