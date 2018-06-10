@@ -44,7 +44,7 @@ This methodological description page is divided in 3 sections, the Forecasting m
  
 #Basic Flowchart
 
-![](M4meta_flowchart.png)
+![](M4meta_flowchart.svg)
  
  
 #<a name="forecasting_methods"></a>Forecasting methods

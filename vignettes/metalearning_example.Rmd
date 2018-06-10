@@ -209,7 +209,7 @@ The output of `summary_performance` consist of:
  * 'Selected OWI' is the average OWI error produced by the methods selected by the classifier *(a more important measure!)*.
  * 'Weighted OWI' is the error of the method created via the aforementioned combination of all individual methods by their probabilities. Either 'Selected OWI' or 'Weighted OWI" are the *real* forecasting performance measures (whichever is best), though 'Weighted' may not be available if there are restrictions on computing time. *Weighted version is the one submitted to the M4 competition*
  * 'Oracle OWI' shows the theoretical minimum error that a classifier that always picks the best method for each series would produce.
- * 'Single method OWI' is the erro of best method in our pool of forecasting methods.
+ * 'Single method OWI' is the error of best method in our pool of forecasting methods.
   * 'Average OWI' would be the error produced by selecting methods at random from our pool of methods for each series.
  * 'Naive weighted' is the error produced by averaging the forecasts of the methods to produce a new forecast.
 

@@ -49,8 +49,14 @@ and serveral of the ones in the M4 dataset.
 
 ````{r eval=FALSE}
 #install the package if not already installed
-devtools::install_github("rbojhyndman/M4metadata")
-devtools::install_github("pmontman/M4metaresults")
+devtools::install_github("robjhyndman/M4metalearning")
+
+devtools::install_github("carlanetto/M4comp2018")
+
+#the M4metaresults package must be installed from sources due to its large size
+#note that this package is about 1GB in size
+install.packages("https://github.com/pmontman/M4metaresults/releases/download/v0.0.0.9000/M4metaresults_0.0.0.9000.tar.gz", 
+                 repos = NULL, type="source")
 ````
 
 
@@ -105,9 +111,8 @@ In order to facilitate the exact reproduction of the process, the individual for
 library(M4metalearning)
 library(M4metaresults)
 data <- create_feat_classif_problem(submission_M4)
-times =system.time(
+
 preds <- predict_selection_ensemble(model_M4, data$data))
-times
 
 replication_M4 <- ensemble_forecast(preds, submission_M4)
 
@@ -116,5 +121,103 @@ interval_M4 <- predict_interval(submission_M4,
                                 get_M4_interval_weights())
 ````
 
+By examining the `y_hat` elements of the `replication_M4` list we can check the actual mean forecasts.
+By examining the `upper` and `lower` elements of the interval_M4 list we can check the upper and lower prediction interval bounds.
+**NOTE that these are the exact results submitted to the M4 competition, in the same series if forecats using the `forecats_meta_M4` approach of the previous subsection,
+the resulst will be slightly different due to the randomness of the `nnetar` method.
+
+
 
 #Reproducing the Training of the Model
+
+This section explains how to arrive to the trained metalearning model, for producing
+the mean forecast and the prediction intervals.
+Note that this is a very time consuming process, the pretrained models have been provided
+in the previous section.
+
+````{r eval=FALSE}
+
+#training
+library(M4metalearning)
+
+#create the training set using temporal holdout
+set.seed(10-06-2018)
+meta_M4 <- temp_holdout(M4comp2018::M4)
+
+
+#calculate the forecasts of each method in the pool
+#THIS WILL TAKE A LOT OF TIME (hours...)
+meta_M4 <- calc_forecasts(meta_M4, forec_methods(), n.cores=3)
+#calculate the OWA errors
+meta_M4 <- calc_errors(meta_M4)
+#extract the features
+meta_M4 <- THA_features(meta_M4, n.cores=3)
+
+#search for hyperparameters
+hyperparameter_search(meta_M4, filename = "M4_hyper.RData", n_iter=150)
+
+#get the best hyperparameter found
+load("M4_hyper.RData")
+best_hyper <- bay_results[ which.min(bay_results$combi_OWA), ]
+
+#Train the metalearning model with the best hyperparameters found
+
+train_data <- create_feat_classif_problem(meta_M4)
+param <- list(max_depth=best_hyper$max_depth,
+              eta=best_hyper$eta,
+              nthread = 3,
+              silent=1,
+              objective=error_softmax_obj,
+              num_class=ncol(train_data$errors), #the number of forecast methods used
+              subsample=bay_results$subsample,
+              colsample_bytree=bay_results$colsample_bytree)
+
+meta_model <- train_selection_ensemble(train_data$data,
+                                       train_data$errors,
+                                       param=param)
+
+## Now the model is trained, lest produce the predictions
+
+final_M4 <- M4comp2018::M4
+
+#just calculate the forecast and features
+final_M4 <- calc_forecasts(final_M4, forec_methods())
+final_M4 <- THA_features(final_M4)
+
+#get the feature matrix
+final_data <- create_feat_classif_problem(final_M4)
+#calculate the predictions using our model
+preds <- predict_selection_ensemble(meta_model, final_data$data)
+#calculate the final mean forecasts
+final_M4 <- ensemble_forecast(preds, final_M4)
+#the combination predictions are in the field y_hat of each element in the list
+#lets check one
+final_M4[[1]]$y_hat
+}
+````
+
+For the interval, a similar procedure is required.
+
+````{r eval=FALSE}
+
+#we need the mean predictions on the training as the centers of the intervals
+#we will calculate them
+preds <- predict_selection_ensemble(meta_model, train_data$data)
+#this will add the mean forecasts to the dataset, not called interval_M4
+interval_M4 <- ensemble_forecast(preds, meta_M4)
+#we calculate the radius of the individual forecasts methods
+interval_M4 <- calc_radius_interval(interval_M4)
+#prepare the data to pose it as a minimization problem
+info <- prepare_radius_info(interval_M4)
+
+set.seed("10-06-2018")
+#calculate the weights for the combinations of individual methods radius
+res_opt <- train_interval_weights(interval_M4, 48)
+
+#transform the results of the optimization process to the format used by predict interval
+weights <- lapply(res_opt, function (lentry) lentry$opt$par)
+
+#in res opt we have the 
+train_dataset <- predict_interval(train_dataset, weights, TRUE)
+
+````
