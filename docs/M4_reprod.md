@@ -3,7 +3,7 @@ Reproducibility: Combination of Forecast Methods by Feature-based Learning
 Pablo Montero-Manso
 2018-06-10
 
-This page explains how to reproduce the results for our submission. The first part is the methodological description of our methods. [The methodology can be seen here](M4_methodology.html)
+This page explains how to reproduce the results for our submission. The first part is the methodological description of our methods. [The methodology can be seen here](http://htmlpreview.github.io/?https://github.com/robjhyndman/M4metalearning/blob/master/docs/M4_methodology.html)
 
 Authorship
 ==========
@@ -16,25 +16,29 @@ Authorship
 Overview
 ========
 
-The technical part of the reproducibility is divided in two sections. First, the tools for producing the forecast of our method and second, a way of replicating the training of our model. It is divided in two parts because replicating the training is a very computationaly expensive process, so a pretrained model is provided. Also for very long time series, the actual calculation of there forecast can also computationally expensive, because 9 different forecasting methods are calculated independently, and some of these methods do exhaustive search on its parameters, which is time consuming.
+The technical part of the reproducibility is divided in two sections. First, the tools for producing the forecast of our method are described and second, a way of replicating the training of our model if given. It is divided in two parts because replicating the training is a very computationaly expensive process, so a pretrained model ready to use is provided. Also, for very long time series, the actual calculation of the forecasts can also be computationally expensive, because 9 different forecasting methods are calculated independently, and some of these methods do exhaustive search on its parameters, which is time consuming.
 
-The model
-=========
+The pretrained model
+====================
 
-Two R packages are provided as part of our submission, the `M4metalearning` package contains the functions for training new models and making the predictions.
+Two R packages are provided as part of our submission
 
-The `M4metaresults` package is just a 'data' package containing the trained model used in ou submission, as well as the training set, explained in our [methodology page](M4_methodology.md) as well as the 'test' or 'final' dataset, which is the original M4 dataset but with the forecasts of the individual methods and the features of the series already extracted.
+1.  Rhe `M4metalearning` package contains the functions for training new models and making the predictions.
 
-We first show how to reproduce the exact results of our submission and also how to easily use our trained model and provided tools to produce new forecast for any time series.
+2.  The `M4metaresults` package is just a 'data' package containing the trained model used in ou submission, as well as the training set, explained in our [methodology page](http://htmlpreview.github.io/?https://github.com/robjhyndman/M4metalearning/blob/master/docs/M4_methodology.html) as well as the 'test' or 'final' dataset, which is the original M4 dataset but with the forecasts of the individual methods and the features of the series already extracted.
+
+We first show how to easily use our trained model and provided tools to produce new forecast for any time series and then we show how to reproduce the exact results of our submission.
 
 Simple forecasting
 ------------------
 
-The function `forecas_M4` is included in the M4metalearning package to simplify forecasting. `forecast_M4` uses the pretrained model of the `M4metaresults` package. This takes as input a time series and its required forecasting horizon and outputs the mean and interval forecasts. It may be computationally expensive, especially for long time series (length&gt;1000).
+The function `forecast_M4` is included in the M4metalearning package to simplify forecasting. `forecast_M4` uses the pretrained model `meta_M4` in the `M4metaresults` package. This takes as input a time series and its required forecasting horizon and outputs the mean and interval forecasts. It may be computationally expensive, especially for long time series (length&gt;1000).
 
 \*\*NOTE: The results may slightly vary since one of the individual forecasting methods, `nnetar` uses random initialization. Nevertheless, the results should vary less than 0.1%.\*
 
 The following example shows how to produce forecasts for a example 'new' time series and serveral of the ones in the M4 dataset.
+
+The zero step would be to install the packages, note that the `M4metaresults` package is large (~1GB).
 
 ``` r
 #install the package if not already installed
@@ -88,7 +92,7 @@ lines(truex)
 
 ![example forecast](/docs/example_forecast-1.png)
 
-Any time series of the M4 dataset may be easily forecasted using our `forecast_meta_M4` and the `M4comp2018` package containing the original M4 series.
+Any time series in the M4 dataset may also be easily forecasted using our `forecast_meta_M4` and the `M4comp2018` package containing the original M4 series.
 
 ``` r
 forec_M4_2018 <- forecast_meta_M4(model_M4,
@@ -113,7 +117,7 @@ Exact reproduction of the submitted forecasts
 
 Calculating the individual forecast methods for the 100000 time series in the M4 dataset is a very time consuming process (hours). One of the individual methods `nnetar` in the `forecast` R package produces random results which difficult reproducibiliy, for instance when running in a cluster. Training the learning model is also time consuming.
 
-In order to facilitate the exact reproduction of the process, the individual forecast are already calculated in the (`M4metaresults`package)\[<https://github.com/pmontman/M4metaresults>\] and we show here how to apply our approach to the dataset of precalculated individual forecasts.
+In order to facilitate the exact reproduction of the process, the individual forecasts are already calculated in the (`M4metaresults`package)\[<https://github.com/pmontman/M4metaresults>\] and we show here how to apply our approach to the dataset of precalculated individual forecasts.
 
 ``` r
 library(M4metalearning)
@@ -129,12 +133,12 @@ interval_M4 <- predict_interval(submission_M4,
                                 get_M4_interval_weights())
 ```
 
-By examining the `y_hat` elements of the `replication_M4` list we can check the actual mean forecasts. By examining the `upper` and `lower` elements of the interval\_M4 list we can check the upper and lower prediction interval bounds. \*\*NOTE that these are the exact results submitted to the M4 competition, in the same series if forecats using the `forecats_meta_M4` approach of the previous subsection, the resulst will be slightly different due to the randomness of the `nnetar` method.
+By examining the `y_hat` elements of the `replication_M4` list we can check the actual mean forecasts. By examining the `upper` and `lower` elements of the interval\_M4 list we can check the upper and lower prediction interval bounds. \*\*NOTE that these are the exact results submitted to the M4 competition, if the same series if forecast using the `forecast_meta_M4` approach of the previous subsection, the results will be slightly different due to the randomness of the `nnetar` method.
 
 Reproducing the Training of the Model
 =====================================
 
-This section explains how to arrive to the trained metalearning model, for producing the mean forecast and the prediction intervals. Note that this is a very time consuming process, the pretrained models have been provided in the previous section.
+This section explains how to arrive to the trained metalearning model, starting just from the original M4 dataset. Note that this is a very time consuming process, the pretrained models have been provided in the previous section.
 
 ``` r
 
@@ -217,7 +221,10 @@ res_opt <- train_interval_weights(interval_M4, 48)
 
 #transform the results of the optimization process to the format used by predict interval
 weights <- lapply(res_opt, function (lentry) lentry$opt$par)
+#these weights are the result of the training!
 
-#in res opt we have the 
-train_dataset <- predict_interval(train_dataset, weights, TRUE)
+##We will apply it to the training set
+
+#in interval_M4 we have the upper and lower bounds
+interval_M4 <- predict_interval(interval_M4, weights, TRUE)
 ```

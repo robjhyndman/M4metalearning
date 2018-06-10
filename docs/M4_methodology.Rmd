@@ -79,34 +79,34 @@ This section explains the learning model that produces the weights used to combi
 2. **Model for producing the prediction intervals:** This method uses the mean forecasts (the result of our mean approach) as the center of the interval, and the finds a linear combination of the 95% prediction intervals of 3 forecasting methods in our original set, THETAF, NAIVE and SEASONAL NAIVE. One set of weights to combine this three intervals is produced per horizon, and is the same for all series, differing from the mean approach, where one set of weights is produced per series. The weights are calculated by minimizing the MSIS error of the linear combination of these three intervals in the training set.
 
 ## Creating the training set
- In order to train the learning model, a dataset where the OWI errors of the methods is required. In our case, we applied temporal holdout to the available M4 dataset to create this training set. The specific temporal holdout procedure is as follows:
+ In order to train the learning model, a dataset where the OWI errors of the methods can be measured is required. In our case, we applied temporal holdout to the available M4 dataset to create this training set. The specific temporal holdout procedure is as follows:
 
  * For each series in M4, we know its values, $x$ and the required forecasting horizon, $h$
  * We take the last $h$ observations from $x$ and use them as the true future values, $xx$ of the remaining observations of $x$, $r$.
  * We add $r$ with its correspoding true future values $xx$ to the training set.
  * If $r$ has less than 7 observations, a smaller horizon is used.
  
-In this new training set we can apply the forecasting methods and measure their OWI errors in a scenario that will be close to the real one. We call this training set `meta_M4`
+In this new training set we can apply the forecasting methods and measure their OWI errors in a scenario that will be 'close' to the real one. We call this training set `meta_M4`
 
 ##Mean forecasts
 
-Let $a$ be the features extraced for a time series $x$, $f$ the set of $M$ vectors with the forecasts for each method applied to $x$ and $xx$ the true future values of $x$. The gradient boosting method produces a vector of length $M$, real numbers, as a function of the features, $y(a)$.
+Let $a$ be the features extracted from a time series $x$, $f$ the set of $M$ vectors with the forecasts for each method applied to $x$ and $xx$ the true future values of $x$. The gradient boosting method produces a vector of length $M$, real numbers, as a function of the features, $y(a)$.
 
 
 We transform the output of the trees $y(a)$ from real numbers to probabilities by appling the $softmax$ transform. 
-For a given series error function for the given features, $a$, the forecasts $f$ and the true future values $xx$ is
+The error or 'loss' function for a series $x$ with features, $a$, forecasts set $f$ and the true future values $xx$ is:
 
 $$ L_{OWA}(y,a,f,xx) = \sum_{i=1}^{M} \frac{e^{y(a)_i}}{\sum e^{y(a)}} OWA (f_i, xx) $$
 This error function has three benefits:
 
 1. It has interpretability as probabilities of the $i$-eth forecasting method being in our pool for the given features extracted from the series.
-2. We are minimizing the OWI that the produced probabilities would make on average.
+2. We are minimizing the OWI that the method chose as following the probabilities would make on average.
 3. If we use the probabilities as weights in a linear combination of the forecasts, it is less prone to overfitting than a unrestricted linear combination, it can be though as a kind of regularization.
 
 The gradient tree boosting approach implemented in `xgboost` works by additively approximating the function $y$ so that the overall error is minimized:
 
 $$ argmin_y \sum_{j}^N L_{OWA}(y,A_j,F_j,XX_j) $$
-with $A_j$, $F_j$, $XX_j$ are the features, forecasts and future values oth the $j$-eth series training set. Gradient and Hessian of $L_{OWA}$ with respect to $y$ must be provided to `xbgoost` to proceed with the minimization. 
+where $A_j$, $F_j$, $XX_j$ are the features, forecasts and future values oth the $j$-eth series training set. The Gradient and Hessian of $L_{OWA}$ with respect to $y$ must be provided to `xbgoost` to proceed with the minimization. 
 
 ###Hyperparameter search
 
@@ -127,17 +127,17 @@ We have performed a search in a subset of the hyperparameter space by using Baye
 
 The learning model, (that is the function $y$), is trained in `meta_M4`.
 
-For a series $x$ in the original M4 dataset, the vector of features, $a$ is extracted from it and the individual methods' forecasts $f$ are calculated.
-The model the produces its output $y(a)$ from  and is transformed to probabilties, then the individual method's forecasts are combined by linear combination using these probabilities to produce the **final submitted forecast**.
+For a series $x$ in the **original** M4 dataset, the vector of features, $a$ is extracted from it and the individual methods' forecasts $f$ are calculated.
+The model then produces its output $y(a)$ and it is transformed to probabilties. Finally the individual method's forecasts are combined by linear combination using these probabilities as 'weights' to produce the **final submitted forecast**.
   $$combi\_forecast(x) = \sum_{i}^{M} \frac{e^{y(a)_i}}{e^{y(a)}} f_i$$
-Note that we omit the forecasting horizon $h$ for simplicity. It would be an extra input parameter.
+*Note that we omit the forecasting horizon $h$ for simplicity. It would be an extra input parameter.*
 
 ## Prediction Intervals
 
-The prediction intervals are also a linear combination of intervals of single methods. The weights of the combination is calculated the following way.
+The prediction intervals are also a linear combination of intervals of single methods. The weights of the combination are calculated the following way:
 
-In the training set we calculate the 95% prediction intervals of the methods THETA, NAIVE and SEASONAL NAIVE, produced by their implementation in the `forecast` R package. For each of these methods, we get 'radius' of the interval, the difference from the upper bound to the mean forecast (we consider symmetric intervals). These radius are also vectors of length $h$, the forecasting horizon.
-Using the mean forecast produced by our approach described in the previous section, the MSIS is minimized.
+In the training set we calculate the 95% prediction intervals of the methods THETA, NAIVE and SEASONAL NAIVE, produced by their implementation in the `forecast` R package. This subset of methods was chose for comptutational cost reasons. For each of these methods, we get the 'radius' of the interval, the difference from the upper bound to the mean forecast (we consider symmetric intervals). These radiuses are also vectors of length $h$, the required forecasting horizon.
+Using the mean forecast produced by our approach described in the previous section, the MSIS is minimized the following way:
 
 A set of weights $w$ will be calculated per forecasting horizon.
 For a given series $x$ we produce the mean combination forecast $c$, and the radius of the intervals of the $M=3$ methods, $r$.
@@ -145,7 +145,7 @@ For a given series $x$ we produce the mean combination forecast $c$, and the rad
 We start by calculaing the denomitator of the MSIS error formula, common to al horizons:
 $$D = \sum_{t=1+m}^n x_t - x_{t-m} $$
 
-Since we will calculate one set of weights per horizon, we will simplify the MSIS formula and show the minimization of one horizon. This means that if we $w$ from now are the forecast for one specific horizon, eg. 13,  $xx$ would therefore 13th true future value of $x$ in the training set.
+Since we will calculate one set of weights per horizon, we will simplify the notation of the  MSIS formula and show the minimization of one specific horizon. This means that $w$ from now on are the set of $M=3$ weights for one specific horizon, eg. 13,  $xx$ would therefore be 13th true future value of $x$ in the training set.
 The weights are calculated by minimizing the following formula:
 
 $$ L(w,x) = \sum_{i=1}^{M}c - w_ir_i$$
@@ -157,12 +157,12 @@ $$ MSIS(w,x,xx) = \frac{ 2 \sum_{1}^{M} r_iw_i + \frac{2}{\alpha}(L - xx)I(L<xx)
 $$ argmin_w \sum_{j=1}^N MSIS(w, X_j, XX_j) $$
 with $X$ and $XX$ the set of series and true future values in the training set `meta_M4` respectively.
 
-This minimization is repeated for all forecasting horizon, 48 in the M4 competitions, to produce 48 sets of 4 weights.
+This minimization is repeated for all forecasting horizons, 48 in the M4 competitions, to produce 48 sets of $M=3$ weights.
 The optimization algorithm used is the standard Conjugate Gradient implemented in the `optim` R function.
 
 ### Computing the prediction intervals
 
-For a given series $x$ we calculate the radius $r$ based on the three methods and the mean forecast $c$. The precalculated set of weights $W$ is a $3 \times h$ matrix, just like $r$.
+For a given series $x$ we calculate the radius $r$ based on the three methods and the mean forecast $c$ of our mean approach. The precalculated set of weights $W$ is a $3 \times h$ matrix, just like $r$.
 
 The prediction intervals for $x$ are:
 $$U = c + diag(W'r)$$
@@ -172,7 +172,7 @@ With $W'$ denoting the transpose of $W$ and diag the diagonal elements of the ma
 
 ## Final postprocessing
 
-A final step, common to both mean and prediction interval, is setting negative values to 0. This is due to no obervations in the dataset being less than 0.
+A final step, common to both means and prediction interval forecasts, is setting negative values to 0. This is due to no obervations in the dataset being less than 0.
 
 #<a name="features"></a> The Features
 

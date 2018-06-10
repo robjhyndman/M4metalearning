@@ -148,7 +148,7 @@ round(head(train_data$errors, n=3),2)
 #>      auto_arima_forec ets_forec nnetar_forec tbats_forec stlm_ar_forec
 #> [1,]             0.14      0.19         0.28        0.19          0.56
 #> [2,]             0.93      0.89         1.97        1.00          1.96
-#> [3,]             1.59      1.46         1.85        1.52          1.37
+#> [3,]             1.59      1.46         2.22        1.52          1.37
 #>      rw_drift_forec thetaf_forec naive_forec snaive_forec
 #> [1,]           0.18         0.12        0.24         0.31
 #> [2,]           0.93         1.29        1.80         1.80
@@ -195,19 +195,19 @@ test_data <- create_feat_classif_problem(M4_test)
 preds <- predict_selection_ensemble(meta_model, test_data$data)
 head(preds)
 #>            [,1]       [,2]        [,3]       [,4]        [,5]       [,6]
-#> [1,] 0.03544266 0.59221575 0.018394294 0.02593579 0.009564465 0.02668695
-#> [2,] 0.04346135 0.45394502 0.022555893 0.03180361 0.011728368 0.03272471
-#> [3,] 0.01355545 0.08789515 0.007035108 0.00991944 0.003658039 0.01020673
-#> [4,] 0.01865690 0.18112484 0.009682700 0.01365252 0.005034705 0.01404793
-#> [5,] 0.04535111 0.39114207 0.023536658 0.03318648 0.012238335 0.03414763
-#> [6,] 0.01630716 0.09787739 0.008463213 0.01193306 0.004400609 0.01227866
+#> [1,] 0.03326891 0.59318900 0.015959863 0.02429946 0.008917402 0.02484855
+#> [2,] 0.04034969 0.46956315 0.019356675 0.02947123 0.010815334 0.03013719
+#> [3,] 0.01398190 0.08457093 0.006707438 0.01021231 0.003747709 0.01044308
+#> [4,] 0.01871711 0.15708693 0.008979030 0.01367089 0.005016937 0.01397981
+#> [5,] 0.04431732 0.38688689 0.021260042 0.03236917 0.011878820 0.03310062
+#> [6,] 0.01689943 0.08702000 0.008107046 0.01234327 0.004529724 0.01262219
 #>           [,7]       [,8]        [,9]
-#> [1,] 0.2455148 0.02741168 0.018833656
-#> [2,] 0.3470730 0.03361340 0.023094658
-#> [3,] 0.8500430 0.01048391 0.007203147
-#> [4,] 0.7334570 0.01442942 0.009913978
-#> [5,] 0.4012239 0.03507497 0.024098849
-#> [6,] 0.8274624 0.01261211 0.008665363
+#> [1,] 0.2564762 0.02544224 0.017598419
+#> [2,] 0.3481055 0.03085723 0.021343972
+#> [3,] 0.8522480 0.01069259 0.007396072
+#> [4,] 0.7583346 0.01431382 0.009900883
+#> [5,] 0.4128529 0.03389146 0.023442753
+#> [6,] 0.8366152 0.01292376 0.008939374
 ```
 
 The last step is calculating the actual forecasts by the linear combinations produced by the metalearning model. The function `ensemble_forecast` is provided for this task. It will take the `predictions` and the `dataset` in the output of format of `calc_forecasts` with the `ff` field and add the field `y_hat` with the actual forecasts to the elements `dataset`.
@@ -215,8 +215,8 @@ The last step is calculating the actual forecasts by the linear combinations pro
 ``` r
 M4_test <- ensemble_forecast(preds, M4_test)
 M4_test[[1]]$y_hat
-#>  [1] 7887.068 7888.037 7888.039 7887.719 7886.945 7887.083 7887.306
-#>  [8] 7887.530 7887.756 7887.984 7888.213 7888.444 7888.676 7888.910
+#>  [1] 7887.005 7887.908 7887.910 7887.610 7886.889 7887.016 7887.223
+#>  [8] 7887.432 7887.642 7887.853 7888.065 7888.279 7888.494 7888.711
 ```
 
 We have the forecasts!
@@ -232,7 +232,7 @@ In `M4metalearning` package we provide the function `summary_performance`, that 
 summary <- summary_performance(preds, dataset = M4_test)
 #> [1] "Classification error:  1"
 #> [1] "Selected OWI :  0.8144"
-#> [1] "Weighted OWI :  0.7631"
+#> [1] "Weighted OWI :  0.7637"
 #> [1] "Naive Weighted OWI :  0.7753"
 #> [1] "Oracle OWI:  0.472"
 #> [1] "Single method OWI:  0.634"
@@ -245,7 +245,7 @@ The output of `summary_performance` consist of:
 -   'Selected OWI' is the average OWI error produced by the methods selected by the classifier *(a more important measure!)*.
 -   'Weighted OWI' is the error of the method created via the aforementioned combination of all individual methods by their probabilities. Either 'Selected OWI' or 'Weighted OWI" are the *real* forecasting performance measures (whichever is best), though 'Weighted' may not be available if there are restrictions on computing time. *Weighted version is the one submitted to the M4 competition*
 -   'Oracle OWI' shows the theoretical minimum error that a classifier that always picks the best method for each series would produce.
--   'Single method OWI' is the erro of best method in our pool of forecasting methods.
+-   'Single method OWI' is the error of best method in our pool of forecasting methods.
 -   'Average OWI' would be the error produced by selecting methods at random from our pool of methods for each series.
 -   'Naive weighted' is the error produced by averaging the forecasts of the methods to produce a new forecast.
 

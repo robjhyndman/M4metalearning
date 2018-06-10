@@ -13,7 +13,8 @@ knitr::opts_chunk$set(
 options(knitr.duplicate.label = 'allow')
  rmarkdown::render("docs/M4_methodology.Rmd", output_format = "html_document")
  rmarkdown::render("docs/M4_reprod.Rmd", output_format = "github_document")
-  rmarkdown::render("vignettes/metalearning_example.Rmd", output_format = "github_document")
+ rmarkdown::render("vignettes/metalearning_example.Rmd",
+                   output_format = "github_document")
  file.rename("vignettes/metalearning_example.md", "docs/metalearning_example.md")
 
 ```
