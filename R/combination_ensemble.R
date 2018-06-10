@@ -217,7 +217,7 @@ create_combi_info <- function(dataset) {
   #transform the dataset into matrix format
   #with one forecast horizon per row, that will be properly weighted
   #instead of one series per row, to simplify the objective function
-  forec_true_w <- sapply(dataset, function (seriesentry) {
+  forec_true_w <- lapply(dataset, function (seriesentry) {
     external_weight <- calc_external_weight(seriesentry$x, seriesentry$h)
     t(sapply(1:seriesentry$h, function(i) {
       c(t(seriesentry$ff[, i]), seriesentry$xx[i], external_weight)
@@ -227,8 +227,8 @@ create_combi_info <- function(dataset) {
 
   data <- lapply(dataset, function (lentry) {
     seriesdata <- t(replicate(lentry$h,
-                              as.numeric(lentry$THA_features)))
-    colnames(seriesdata) <- names(lentry$THA_features)
+                              as.numeric(lentry$features)))
+    colnames(seriesdata) <- names(lentry$features)
     seriesdata
   })
   data <- do.call(rbind, data)

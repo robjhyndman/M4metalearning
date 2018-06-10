@@ -217,7 +217,7 @@ The output of `summary_performance` consist of:
 
 Models trained with \code{xgboost} allow for some interpretation, such as relative importance of features, known as gain. We will show the top 20 features ordered by gain. Analysis tools that may be used with standard `xgboost` models could be applied to this metalearning model.
 
-````{r xgb_gain_plot, fig.path='docs/', fig.width=6, fig.height=5, fig.cap='XGB Feature Gain of the Metalearning model'}
+````{r xgb_gain_plot, fig.path='/docs/', fig.width=6, fig.height=5, fig.cap='XGB Feature Gain of the Metalearning model'}
 mat <- xgboost::xgb.importance (feature_names = colnames(test_data$data),
                        model = meta_model)
 xgboost::xgb.plot.importance(importance_matrix = mat[1:20], cex=1.0)

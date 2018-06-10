@@ -125,7 +125,7 @@ $$ MSIS(w,x,xx) = \\frac{ 2 \\sum\_{1}^{M} r\_iw\_i + \\frac{2}{\\alpha}(L - xx)
 $$ argmin\_w \\sum\_{j=1}^N MSIS(w, X\_j, XX\_j) $$
  with *X* and *X**X* the set of series and true future values in the training set `meta_M4` respectively.
 
-This minimization is repeated for all forecasting horizon, 48 in the M4 competitions, to produce 48 sets of 4 weights.
+This minimization is repeated for all forecasting horizon, 48 in the M4 competitions, to produce 48 sets of 4 weights. The optimization algorithm used is the standard Conjugate Gradient implemented in the `optim` R function.
 
 ### Computing the prediction intervals
 

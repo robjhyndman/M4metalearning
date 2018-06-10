@@ -147,9 +147,9 @@ round(head(train_data$data, n=3),2)
 #> [3,]            51
 round(head(train_data$errors, n=3),2)
 #>      auto_arima_forec ets_forec nnetar_forec tbats_forec stlm_ar_forec
-#> [1,]             0.14      0.19         0.28        0.19          0.56
+#> [1,]             0.14      0.19         0.29        0.19          0.56
 #> [2,]             0.93      0.89         1.97        1.00          1.96
-#> [3,]             1.59      1.46         2.14        1.52          1.37
+#> [3,]             1.59      1.46         2.21        1.52          1.37
 #>      rw_drift_forec thetaf_forec naive_forec snaive_forec
 #> [1,]           0.18         0.12        0.24         0.31
 #> [2,]           0.93         1.29        1.80         1.80
@@ -196,19 +196,19 @@ test_data <- create_feat_classif_problem(M4_test)
 preds <- predict_selection_ensemble(meta_model, test_data$data)
 head(preds)
 #>            [,1]       [,2]        [,3]       [,4]        [,5]       [,6]
-#> [1,] 0.03485918 0.60027024 0.017094250 0.02553030 0.009380232 0.02616358
-#> [2,] 0.03936508 0.48106374 0.019303857 0.02883035 0.010592723 0.02954549
-#> [3,] 0.01366741 0.08735813 0.006702226 0.01000979 0.003677753 0.01025808
-#> [4,] 0.01911362 0.17116570 0.009372939 0.01399850 0.005143270 0.01434574
-#> [5,] 0.04365039 0.39766839 0.021405286 0.03196884 0.011745853 0.03276183
-#> [6,] 0.01585021 0.08629604 0.007772629 0.01160844 0.004265122 0.01189639
+#> [1,] 0.03474122 0.60048158 0.017065506 0.02545097 0.009365029 0.02612570
+#> [2,] 0.03935903 0.48207004 0.019333853 0.02883392 0.010609829 0.02959833
+#> [3,] 0.01381138 0.08823971 0.006784393 0.01011804 0.003723068 0.01038628
+#> [4,] 0.01922602 0.17241768 0.009444162 0.01408474 0.005182668 0.01445813
+#> [5,] 0.04355650 0.39716590 0.021395727 0.03190893 0.011741322 0.03275487
+#> [6,] 0.01601401 0.08708473 0.007866365 0.01173166 0.004316821 0.01204267
 #>           [,7]       [,8]        [,9]
-#> [1,] 0.2414758 0.02672932 0.018497091
-#> [2,] 0.3402264 0.03018436 0.020888029
-#> [3,] 0.8505945 0.01047990 0.007252245
-#> [4,] 0.7420622 0.01465594 0.010142130
-#> [5,] 0.4041673 0.03347025 0.023161912
-#> [6,] 0.8417471 0.01215362 0.008410490
+#> [1,] 0.2414065 0.02690370 0.018459820
+#> [2,] 0.3388018 0.03047974 0.020913499
+#> [3,] 0.8489029 0.01069557 0.007338703
+#> [4,] 0.7400821 0.01488868 0.010215785
+#> [5,] 0.4046026 0.03373027 0.023143836
+#> [6,] 0.8400334 0.01240129 0.008509076
 ```
 
 The last step is calculating the actual forecasts by the linear combinations produced by the metalearning model. The function `ensemble_forecast` is provided for this task. It will take the `predictions` and the `dataset` in the output of format of `calc_forecasts` with the `ff` field and add the field `y_hat` with the actual forecasts to the elements `dataset`.
@@ -217,9 +217,9 @@ The last step is calculating the actual forecasts by the linear combinations pro
 M4_test <- ensemble_forecast(preds, M4_test)
 M4_test[[1]]$y_hat
 #>          [,1]     [,2]     [,3]     [,4]     [,5]     [,6]     [,7]
-#> [1,] 7887.044 7887.989 7887.984 7887.664 7886.899 7887.027 7887.239
+#> [1,] 7887.043 7887.986 7887.982 7887.662 7886.898 7887.026 7887.238
 #>          [,8]     [,9]    [,10]    [,11]    [,12]    [,13]    [,14]
-#> [1,] 7887.453 7887.667 7887.884 7888.102 7888.321 7888.542 7888.764
+#> [1,] 7887.451 7887.666 7887.882 7888.099 7888.318 7888.539 7888.761
 ```
 
 We have the forecasts!
@@ -235,7 +235,7 @@ In `M4metalearning` package we provide the function `summary_performance`, that 
 summary <- summary_performance(preds, dataset = M4_test)
 #> [1] "Classification error:  1"
 #> [1] "Selected OWI :  0.8144"
-#> [1] "Weighted OWI :  0.7665"
+#> [1] "Weighted OWI :  0.7661"
 #> [1] "Naive Weighted OWI :  0.7753"
 #> [1] "Oracle OWI:  0.472"
 #> [1] "Single method OWI:  0.634"
@@ -262,7 +262,7 @@ mat <- xgboost::xgb.importance (feature_names = colnames(test_data$data),
 xgboost::xgb.plot.importance(importance_matrix = mat[1:20], cex=1.0)
 ```
 
-![XGB Feature Gain of the Metalearning model](docs/xgb_gain_plot-1.png)
+![XGB Feature Gain of the Metalearning model](/docs/xgb_gain_plot-1.png)
 
 ### The End!
 

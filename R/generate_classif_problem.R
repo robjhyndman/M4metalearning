@@ -19,7 +19,10 @@ THA_features <-
     require(tsfeatures)
     if (n.cores > 1) {
       cl <- parallel::makeCluster(n.cores)
-      parallel::clusterExport(cl, varlist="dataset", envir=environment())
+      #parallel::clusterExport(cl, varlist="dataset", envir=environment())
+      parallel::clusterExport(cl, varlist=ls(), envir=environment())
+      parallel::clusterExport(cl, varlist=ls(envir=environment(THA_features)),
+                              envir = environment(THA_features))
       parallel::clusterCall(cl, function() library(tsfeatures)) #required to find functions within tsfeatures
       list_process_fun <- function(my_list, ...) {
         parallel::parLapplyLB(cl, my_list, ...)

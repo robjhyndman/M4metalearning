@@ -1,5 +1,5 @@
 ---
-title: "Combination of Forecast Methods by Feature-based Learning: Methodoly"
+title: "Methodology: Combination of Forecast Methods by Feature-based Learning"
 author: "Pablo Montero-Manso"
 date: "`r Sys.Date()`"
 output:
@@ -28,13 +28,24 @@ the results. [The reproducibility part can be seen here](M4_reprod.md).
 
 #Overview
 
-This approach can be described as a linear combination of statistical forecasting methods, where the weights of the combination are calculated by a learning model based on gradient tree boosting over a set of features extracted from the individual series. This methodological description page is divided in 3 sections, the Forecasting methods, where the individual forecasting methods are described, the Learning model, where the method for generating the weights is explained, for both Mean and Interval predictions, and the Features, where the features used in the learning model are described.
+This approach can be described as a linear combination of statistical forecasting methods, where the weights of the combination are calculated by a learning model based on gradient tree boosting over a set of features extracted from the individual series.
+
+A basic flowchart of the process is included to support the detailed description.
+
+This methodological description page is divided in 3 sections, the Forecasting methods, where the individual forecasting methods are described, the Learning model, where the method for generating the weights is explained, for both Mean and Interval predictions, and the Features, where the features used in the learning model are described.
 
 
 ## Table of Contents
  * [The Forecasting Methods](#forecasting_methods)
  * [The Learning model](#learning_model)
  * [The Features](#features)
+ 
+ 
+ 
+#Basic Flowchart
+
+![](M4meta_flowchart.png)
+ 
  
 #<a name="forecasting_methods"></a>Forecasting methods
 
@@ -130,6 +141,7 @@ Using the mean forecast produced by our approach described in the previous secti
 
 A set of weights $w$ will be calculated per forecasting horizon.
 For a given series $x$ we produce the mean combination forecast $c$, and the radius of the intervals of the $M=3$ methods, $r$.
+*NOTE: This combination forecast $c$ used for training the interval is based on a model trained on a disjoint subset of the training set, to avoid overfitting, the final combination $c$ is based on all the training set.*
 We start by calculaing the denomitator of the MSIS error formula, common to al horizons:
 $$D = \sum_{t=1+m}^n x_t - x_{t-m} $$
 
@@ -146,6 +158,7 @@ $$ argmin_w \sum_{j=1}^N MSIS(w, X_j, XX_j) $$
 with $X$ and $XX$ the set of series and true future values in the training set `meta_M4` respectively.
 
 This minimization is repeated for all forecasting horizon, 48 in the M4 competitions, to produce 48 sets of 4 weights.
+The optimization algorithm used is the standard Conjugate Gradient implemented in the `optim` R function.
 
 ### Computing the prediction intervals
 

@@ -135,7 +135,7 @@ predict_selection_ensemble <- function(model, newdata) {
 #' @export
 ensemble_forecast <- function(predictions, dataset, clamp_zero=TRUE) {
   for (i in 1:length(dataset)) {
-    weighted_ff <- t(predictions[i,]) %*% dataset[[i]]$ff
+    weighted_ff <- as.vector(t(predictions[i,]) %*% dataset[[i]]$ff)
     if (clamp_zero) {
       weighted_ff[weighted_ff < 0] <- 0
     }
@@ -273,10 +273,10 @@ temp_holdout <- function(dataset) {
 }
 
 #' @export
-forecast_metaM4 <- function(meta_model, x, h) {
+forecast_meta_M4 <- function(meta_model, x, h) {
 
   ele <- list(list(x=x, h=h))
-  ele <- M4metalearning::THA_features(ele)
+  ele <- THA_features(ele)
 
   ff <- process_forecast_methods(ele[[1]], forec_methods())
   ff <- t(sapply(ff, function (lentry) lentry$forecast))
@@ -305,11 +305,11 @@ forecast_metaM4 <- function(meta_model, x, h) {
     stop("Maximum forecasting horizon is 48")
   }
   for (i in 1:h) {
-    radius[i] <- sum(interval_weights[,i] * ff_radius[,i])
+    radius[i] <- sum(M4_interval_weights[,i] * ff_radius[,i])
   }
 
-  upper <- y_hat + radius
-  lower <- y_hat - radius
+  upper <- as.vector(y_hat + radius)
+  lower <- as.vector(y_hat - radius)
 
   y_hat[y_hat < 0] <- 0
   upper[upper < 0] <- 0
@@ -318,8 +318,13 @@ forecast_metaM4 <- function(meta_model, x, h) {
   list(mean=y_hat, upper=upper, lower=lower)
 }
 
+#' @export
+get_M4_interval_weights <- function() {
+  M4_interval_weights
+}
+
 #weights used for calu
-interval_weights <- structure(c(1.20434805479858, 0.0349832013212199, -0.0135553803216437,
+M4_interval_weights <- structure(c(1.20434805479858, 0.0349832013212199, -0.0135553803216437,
             1.6348667017876, -0.0291391104169728, -0.137106578797595, 1.89343593467985,
             -0.0556309211578089, -0.193624560527705, 1.97820794828226, -0.0710718154535777,
             -0.123100424872484, 2.20852069562932, -0.0710600158690502, -0.211316149359757,
