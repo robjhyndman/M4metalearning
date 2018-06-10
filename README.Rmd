@@ -26,7 +26,7 @@ Additionaly, the authors have produced another R package `M4comp2018`, which fac
 
 The description is divided into three sections, the first t
 
- 1. [Methodology](docs/M4_methodology.html)
+ 1. [Methodology](http://htmlpreview.github.io/?https://github.com/robjhyndman/M4metalearning/blob/master/docs/M4_methodology.html)
  2. [Reproducing the results](docs/M4_reprod.md)
  3. [Usage example of the package](docs/metalearning_example.md)
 
