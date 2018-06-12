@@ -1,7 +1,7 @@
 ---
 title: "Reproducibility: Combination of Forecast Methods by Feature-based Learning"
 author: "Pablo Montero-Manso"
-date: "`r Sys.Date()`"
+date: 2018-06-10#"`r Sys.Date()`"
 output:
   html_document:
     number_sections: true
@@ -13,6 +13,11 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 ```
+# NOTE FOR REPRODUCIBILITY
+Some changes havebeen made in this documents to facilitate the reproducibility since
+its finalsubmission 10-June-2018. They are relatedto better installation instructions:
+ * A line for installing tsfeatures package has been adde
+
 This page explains how to reproduce the results for our submission.
 The first part is the methodological description of our methods. [The methodology can be seen here](http://htmlpreview.github.io/?https://github.com/robjhyndman/M4metalearning/blob/master/docs/M4_methodology.html)
 
@@ -51,6 +56,8 @@ and serveral of the ones in the M4 dataset.
 The zero step would be to install the packages, note that the `M4metaresults` package is large (~1GB).
 ````{r eval=FALSE}
 #install the package if not already installed
+#install.packages("devtools")
+devtools::install_github("pmontman/tsfeatures")
 devtools::install_github("robjhyndman/M4metalearning")
 
 devtools::install_github("carlanetto/M4comp2018")

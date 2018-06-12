@@ -10,7 +10,6 @@ Depends: R (>= 3.2.0)
 Imports: forecast,
          parallel,
          Mcomp,
-         tsfeatures,
          tibble,
          devtools
 License: GPL-3
