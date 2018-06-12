@@ -59,7 +59,7 @@ The zero step would be to install the packages, note that the `M4metaresults` pa
 #install.packages("devtools")
 devtools::install_github("pmontman/tsfeatures")
 devtools::install_github("robjhyndman/M4metalearning")
-
+devtools::install_github("pmontman/customxgboost")
 devtools::install_github("carlanetto/M4comp2018")
 
 #the M4metaresults package must be installed from sources due to its large size
@@ -70,8 +70,10 @@ install.packages("https://github.com/pmontman/M4metaresults/releases/download/v0
 
 
 ````{r}
+library(xgboost)
 library(M4metalearning)
 library(M4metaresults)
+
 #we will showcase how to forecast a syntethic time series
 #first, we generate the full series
 set.seed(10-06-2018)

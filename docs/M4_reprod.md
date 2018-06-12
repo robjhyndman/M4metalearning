@@ -1,7 +1,12 @@
 Reproducibility: Combination of Forecast Methods by Feature-based Learning
 ================
 Pablo Montero-Manso
-2018-06-10
+2018-06-10\#"2018-06-12"
+
+NOTE FOR REPRODUCIBILITY
+========================
+
+Some changes havebeen made in this documents to facilitate the reproducibility since its finalsubmission 10-June-2018. They are relatedto better installation instructions: \* A line for installing tsfeatures package has been adde
 
 This page explains how to reproduce the results for our submission. The first part is the methodological description of our methods. [The methodology can be seen here](http://htmlpreview.github.io/?https://github.com/robjhyndman/M4metalearning/blob/master/docs/M4_methodology.html)
 
@@ -42,8 +47,10 @@ The zero step would be to install the packages, note that the `M4metaresults` pa
 
 ``` r
 #install the package if not already installed
+#install.packages("devtools")
+devtools::install_github("pmontman/tsfeatures")
 devtools::install_github("robjhyndman/M4metalearning")
-
+devtools::install_github("pmontman/customxgboost")
 devtools::install_github("carlanetto/M4comp2018")
 
 #the M4metaresults package must be installed from sources due to its large size
@@ -53,8 +60,10 @@ install.packages("https://github.com/pmontman/M4metaresults/releases/download/v0
 ```
 
 ``` r
+library(xgboost)
 library(M4metalearning)
 library(M4metaresults)
+
 #we will showcase how to forecast a syntethic time series
 #first, we generate the full series
 set.seed(10-06-2018)
