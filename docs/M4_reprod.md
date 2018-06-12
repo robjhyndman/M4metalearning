@@ -1,7 +1,7 @@
 Reproducibility: Combination of Forecast Methods by Feature-based Learning
 ================
 Pablo Montero-Manso
-2018-06-10\#"2018-06-12"
+2018-06-12
 
 This page explains how to reproduce the results for our submission. The first part is the methodological description of our methods. [The methodology can be seen here](http://htmlpreview.github.io/?https://github.com/robjhyndman/M4metalearning/blob/master/docs/M4_methodology.html)
 
