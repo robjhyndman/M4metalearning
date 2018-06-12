@@ -13,13 +13,17 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 ```
-# NOTE FOR REPRODUCIBILITY
-Some changes havebeen made in this documents to facilitate the reproducibility since
-its finalsubmission 10-June-2018. They are relatedto better installation instructions:
- * A line for installing tsfeatures package has been adde
 
 This page explains how to reproduce the results for our submission.
 The first part is the methodological description of our methods. [The methodology can be seen here](http://htmlpreview.github.io/?https://github.com/robjhyndman/M4metalearning/blob/master/docs/M4_methodology.html)
+
+## NOTE FOR REPRODUCIBILITY
+Some changes havebeen made in this documents to facilitate the reproducibility since
+its finalsubmission 10-June-2018. They are relatedto better installation instructions:
+
+ * A line for installing tsfeatures package has been added
+ * A line to install the customized version of the xgboost packagehas been added
+ * Typos and clarifications
 
 
 #Authorship
@@ -102,8 +106,9 @@ lines(truex)
 
 Any time series in the M4 dataset may also be easily forecasted using our `forecast_meta_M4`
 and the `M4comp2018` package containing the original M4 series.
-
+Lets produce the prediction for the series D2018
 ````{r}
+M4comp2018::M4[[2018]]$st
 forec_M4_2018 <- forecast_meta_M4(model_M4,
                                   M4comp2018::M4[[2018]]$x,
                                   M4comp2018::M4[[2018]]$h)
@@ -123,7 +128,7 @@ library(M4metalearning)
 library(M4metaresults)
 data <- create_feat_classif_problem(submission_M4)
 
-preds <- predict_selection_ensemble(model_M4, data$data))
+preds <- predict_selection_ensemble(model_M4, data$data)
 
 replication_M4 <- ensemble_forecast(preds, submission_M4)
 
