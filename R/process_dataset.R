@@ -240,9 +240,9 @@ calc_forecasts <- function(dataset, methods, n.cores=1) {
 
   if (n.cores > 1) {
     cl <- parallel::makeCluster(n.cores)
-    parallel::clusterExport(cl, varlist=ls(), envir=environment())
-    parallel::clusterExport(cl, varlist=ls(envir=environment(process_forecast_methods)),
-                            envir = environment(process_forecast_methods))
+    .env <- as.environment(as.list(environment(process_forecast_methods), all.names = TRUE))
+    lapply(methods, function(method) assign(method, get(method), .env))
+    parallel::clusterExport(cl, varlist=ls(envir=.env), envir = .env)
     list_process_fun <- function(my_list, ...) {
       parallel::parLapplyLB(cl, my_list, ...)
     }
