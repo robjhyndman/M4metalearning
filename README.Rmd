@@ -42,7 +42,7 @@ You can install `M4metalearning` from github with:
 
 ```{r gh-installation, eval = FALSE}
 # install.packages("devtools")
-devtools::install_github("robjhyndman/M4metalearning)
+devtools::install_github("robjhyndman/M4metalearning")
 ```
 
 
