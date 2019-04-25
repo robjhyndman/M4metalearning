@@ -11,6 +11,7 @@
 \alias{stlm_ar_forec}
 \alias{rw_drift_forec}
 \alias{thetaf_forec}
+\alias{naive2_forec}
 \title{Forecasting methods list
 A list of the forecasting methods for use in the metalearnig process
 The list follows the format described in the parameter \code{methods}
@@ -35,6 +36,8 @@ stlm_ar_forec(x, h)
 rw_drift_forec(x, h)
 
 thetaf_forec(x, h)
+
+naive2_forec(x, h)
 }
 \arguments{
 \item{x}{A \code{ts} object with the input time series}
@@ -66,6 +69,8 @@ of \code{\link{calc_forecasts}}
 \item \code{rw_drift_forec}: forecast::rwf
 
 \item \code{thetaf_forec}: forecast::thetaf
+
+\item \code{naive2_forec}: Naive2 method from the M4 competition, used for the OWA
 }}
 
 \seealso{

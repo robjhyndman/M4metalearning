@@ -61,16 +61,19 @@ mase_cal <- function(insample, outsample, forecasts) {
 
 #' @export
 calc_errors <- function(dataset) {
+  stopifnot("xx" %in% names(dataset[[1]]))
+  stopifnot("ff" %in% names(dataset[[1]]))
+  stopifnot("x" %in% names(dataset[[1]]))
 
-  total_snaive_errors <- c(0,0)
+  total_naive2_errors <- c(0,0) #accumulate the errors of the naive2 to get its average over the dataset
   for (i in 1:length(dataset)) {
     tryCatch({
     lentry <- dataset[[i]]
     insample <- lentry$x
 
-    #extrac forecasts and attach the snaive for completion
+    #extrac forecasts and attach the naive2 for completion
     ff <- lentry$ff
-    ff <- rbind(ff, snaive_forec(insample, lentry$h))
+    ff <- rbind(ff, naive2_forec(insample, lentry$h))
 
     frq <- frq <- stats::frequency(insample)
     insample <- as.numeric(insample)
@@ -92,7 +95,7 @@ calc_errors <- function(dataset) {
     lentry$mase_err <- mase_err[-nrow(mase_err),]
     lentry$smape_err <- smape_err[-nrow(smape_err),]
     dataset[[i]] <- lentry
-    total_snaive_errors <- total_snaive_errors + c(mean(lentry$snaive_mase),
+    total_naive2_errors <- total_naive2_errors + c(mean(lentry$snaive_mase),
                                                    mean(lentry$snaive_smape))
     } , error = function (e) {
       print(paste("Error when processing OWIs in series: ", i))
@@ -100,18 +103,18 @@ calc_errors <- function(dataset) {
       e
     })
   }
-  total_snaive_errors = total_snaive_errors / length(dataset)
-  avg_snaive_errors <- list(avg_mase=total_snaive_errors[1],
-                            avg_smape=total_snaive_errors[2])
+  total_naive2_errors = total_naive2_errors / length(dataset)
+  avg_naive2_errors <- list(avg_mase=total_naive2_errors[1],
+                            avg_smape=total_naive2_errors[2])
 
 
   for (i in 1:length(dataset)) {
     lentry <- dataset[[i]]
-    dataset[[i]]$errors <- 0.5*(rowMeans(lentry$mase_err)/avg_snaive_errors$avg_mase +
-                                  rowMeans(lentry$smape_err)/avg_snaive_errors$avg_smape)
+    dataset[[i]]$errors <- 0.5*(rowMeans(lentry$mase_err)/avg_naive2_errors$avg_mase +
+                                  rowMeans(lentry$smape_err)/avg_naive2_errors$avg_smape)
     #dataset[[i]]$errors <- rowMeans(lentry$smape_err)
   }
-  attr(dataset, "avg_snaive_errors") <- avg_snaive_errors
+  attr(dataset, "avg_naive2_errors") <- avg_naive2_errors
   dataset
 }
 
