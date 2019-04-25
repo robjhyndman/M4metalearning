@@ -60,10 +60,17 @@ mase_cal <- function(insample, outsample, forecasts) {
 ##-#'   }
 
 #' @export
-calc_errors <- function(dataset) {
+calc_errors <- function(dataset, use.precalc.naive2 = FALSE) {
+  #sanity checking
   stopifnot("xx" %in% names(dataset[[1]]))
   stopifnot("ff" %in% names(dataset[[1]]))
   stopifnot("x" %in% names(dataset[[1]]))
+
+  if (use.precalc.naive2) {
+    stopifnot(!is.null(attr(dataset, "avg_naive2_errors") ))
+    #stopifnot("naive2_mase" %in% names(dataset[[1]]))
+    #stopifnot("naive2_smape" %in% names(dataset[[1]]))
+  }
 
   total_naive2_errors <- c(0,0) #accumulate the errors of the naive2 to get its average over the dataset
   for (i in 1:length(dataset)) {
@@ -73,7 +80,9 @@ calc_errors <- function(dataset) {
 
     #extrac forecasts and attach the naive2 for completion
     ff <- lentry$ff
-    ff <- rbind(ff, naive2_forec(insample, lentry$h))
+    if (!use.precalc.naive2) {
+      ff <- rbind(ff, naive2_forec(insample, lentry$h))
+    }
 
     frq <- frq <- stats::frequency(insample)
     insample <- as.numeric(insample)
@@ -89,23 +98,35 @@ calc_errors <- function(dataset) {
 
     mase_err <- abs(ff - repoutsample) / masep
 
-    lentry$snaive_mase <- mase_err[nrow(mase_err), ]
-    lentry$snaive_smape <- smape_err[nrow(smape_err),]
+    if (!use.precalc.naive2) {
+      naive2_mase <- mase_err[nrow(mase_err), ]
+      naive2_smape <- smape_err[nrow(smape_err),]
+      total_naive2_errors <- total_naive2_errors + c(mean(naive2_mase),
+                                                     mean(naive2_smape))
+      #remove the naive2 calculation from the output forecasts
+      lentry$mase_err <- mase_err[-nrow(mase_err),]
+      lentry$smape_err <- smape_err[-nrow(smape_err),]
+    } else {
+      lentry$mase_err <- mase_err
+      lentry$smape_err <- smape_err
+    }
 
-    lentry$mase_err <- mase_err[-nrow(mase_err),]
-    lentry$smape_err <- smape_err[-nrow(smape_err),]
     dataset[[i]] <- lentry
-    total_naive2_errors <- total_naive2_errors + c(mean(lentry$snaive_mase),
-                                                   mean(lentry$snaive_smape))
+
     } , error = function (e) {
-      print(paste("Error when processing OWIs in series: ", i))
+      print(paste("Error when processing OWAs in series: ", i))
       print(e)
       e
     })
   }
-  total_naive2_errors = total_naive2_errors / length(dataset)
-  avg_naive2_errors <- list(avg_mase=total_naive2_errors[1],
+
+  if (!use.precalc.naive2) {
+    total_naive2_errors <- total_naive2_errors / length(dataset)
+    avg_naive2_errors <- list(avg_mase=total_naive2_errors[1],
                             avg_smape=total_naive2_errors[2])
+  } else {
+    avg_naive2_errors <- attr(dataset, "avg_naive2_errors")
+  }
 
 
   for (i in 1:length(dataset)) {

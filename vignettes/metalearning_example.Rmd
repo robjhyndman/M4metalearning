@@ -83,7 +83,7 @@ Without further ado, lets process the training set to generate all forecast and 
 
 ````{r eval=TRUE}
 #this will take time
-M4_train <- calc_forecasts(M4_train, forec_methods(), n.cores=3)
+M4_train <- calc_forecasts(M4_train, forec_methods(), n.cores=1)
 #once we have the forecasts, we can calculate the errors
 M4_train <- calc_errors(M4_train)
 ```

@@ -41,9 +41,11 @@ hyperparameter_search <- function(dataset, filename="meta_hyper.RData", n_iter=1
 
       bst <- xgboost::xgb.train(param, dtrain, nrounds)
       preds <- M4metalearning::predict_selection_ensemble(bst, test_feat[[i]]$data)
+
+      attr(test_ds[[i]], "avg_naive2_errors") <- attr(dataset, "avg_naive2_errors")
       er <- M4metalearning::summary_performance(preds,
                                                 test_ds[[i]],
-                                                print.summary = FALSE)
+                                                print.summary = FALSE, use.precalc.naive2 = TRUE)
 
       final_error <- c(final_error, er$weighted_error)
       final_preds <- rbind(final_preds, preds)
@@ -56,7 +58,6 @@ hyperparameter_search <- function(dataset, filename="meta_hyper.RData", n_iter=1
     try({colnames(bay_results) <- c("max_depth", "eta", "subsample", "colsample_bytree", "nrounds", "combi_OWA")})
     bay_results <- as.data.frame(bay_results)
     save(bay_results, file=filename)
-
     list(Score=-mean(final_error), Pred=final_preds)
   }
 
@@ -67,11 +68,11 @@ hyperparameter_search <- function(dataset, filename="meta_hyper.RData", n_iter=1
                         nrounds=200)
 
   k=2
-  bay_res <- rBayesianOptimization::BayesianOptimization(bayes_xgb, bounds=list(max_depth=c(6L,14L),
+  bay_res <- rBayesianOptimization::BayesianOptimization(bayes_xgb, bounds=list(max_depth=c(2L,30L),
                                                          eta=c(0.001, 1.0),
                                                          subsample=c(0.5,1.0),
                                                          colsample_bytree=c(0.5,1.0),
-                                                         nrounds=c(1L,250L)),
+                                                         nrounds=c(1L,350L)),
                                   init_grid_dt = prefound_grid,
                                   init_points= 5,
                                   kappa = 2.576,

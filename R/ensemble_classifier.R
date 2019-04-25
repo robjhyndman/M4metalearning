@@ -146,21 +146,25 @@ ensemble_forecast <- function(predictions, dataset, clamp_zero=TRUE) {
 
 
 
-#' @describeIn metatemp_train Analysis of the predictions
+#' @describeIn metatemp_train Analysis of the predictions, the weighted error and the selection error, along with extra information
 #' @param predictions A NXM matrix with N the number of observations(time series)
-#'                    and M the number of methods.
-#' @param errors The NXM matrix with the erros per series and per method
-#' @param labels Integer vector The true labels of the would be classification problem.
-#'               Possible values are from 0 to M-1
-#' @param dataset The list with the meta information, if given additional details will be provided
+#'                    and M the number of methods. Each row contains the weights assigned to the methods for the series
+#' @param dataset The list with the meta information, forecasts of each method...MUST contain the precalculated errors with calc_errors()!
 #' @param print.summary Boolean indicating wheter to print the information
+#' @param use.precalc.naive2 Boolean indicating wheter the naive2 errors are already contained in \code{dataset} for skip its calculation
 #'
 #' @export
-summary_performance <- function(predictions, dataset, print.summary = TRUE) {
+summary_performance <- function(predictions, dataset, print.summary = TRUE, use.precalc.naive2=FALSE) {
   stopifnot("xx" %in% names(dataset[[1]]))
-  if (!("errors" %in% names(dataset[[1]]))) {
+
+  #requires precalculated average errors of the dataset
+  if (use.precalc.naive2) {
+    stopifnot(!is.null(attr(dataset, "avg_naive2_errors") ))
+  } else {
     dataset <- calc_errors(dataset)
   }
+
+
   labels <- sapply(dataset, function(lentry) which.min(lentry$errors) - 1)
   max_predictions <- apply(predictions, 1, which.max) - 1
   class_error <- 1 - mean(max_predictions == labels)
@@ -187,7 +191,10 @@ summary_performance <- function(predictions, dataset, print.summary = TRUE) {
                                oracle_ff)
     }
 
-    dataset <- calc_errors(dataset)
+    dataset <- calc_errors(dataset, use.precalc.naive2 = TRUE)
+
+
+
     all_errors <- sapply(dataset, function (lentry) {
       lentry$errors})
 
@@ -203,14 +210,14 @@ summary_performance <- function(predictions, dataset, print.summary = TRUE) {
 
   if (print.summary) {
     print(paste("Classification error: ", round(class_error,4)))
-    print(paste("Selected OWI : ", round(selected_error,4)))
+    print(paste("Selected OWA : ", round(selected_error,4)))
     if (!is.null(weighted_error)) {
-      print(paste("Weighted OWI : ", round(weighted_error,4)))
-      print(paste("Naive Weighted OWI : ", round(naive_weight_error,4)))
+      print(paste("Weighted OWA : ", round(weighted_error,4)))
+      print(paste("Naive Weighted OWA : ", round(naive_weight_error,4)))
     }
-    print(paste("Oracle OWI: ", round(oracle_error,4)))
-    print(paste("Single method OWI: ", round(single_error,3)))
-    print(paste("Average OWI: ", round(average_error,3)))
+    print(paste("Oracle OWA: ", round(oracle_error,4)))
+    print(paste("Single method OWA: ", round(single_error,3)))
+    print(paste("Average OWA: ", round(average_error,3)))
   }
 
   list(selected_error = selected_error,

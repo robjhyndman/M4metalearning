@@ -18,7 +18,7 @@ For each series in \code{dataset}, the feature set used in
     is added.
 }
 \examples{
-processed <- generate_THA_features(Mcomp::M3[c(1:3)], n.cores=1)
+processed <- THA_features(Mcomp::M3[c(1:3)], n.cores=1)
 processed[[1]]$features
 
 }

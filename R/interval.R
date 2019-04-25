@@ -55,9 +55,9 @@ train_interval_weights <- function(dataset, maxh=48) {
     print(h)
     sinfo <- subinfo_h(info, train_dataset, h)
 
-    w <- rnorm(3)
+    w <- stats::rnorm(3)
 
-    opt <- optim(w, opt_msis, ff=sinfo$ff, radius=sinfo$radius,
+    opt <- stats::optim(w, opt_msis, ff=sinfo$ff, radius=sinfo$radius,
                  xx=sinfo$xx, ew=sinfo$ew, method="CG", control=list(trace=0))
 
     res_perh <- append(res_perh, list(list(h=h, opt=opt)) )

@@ -8,7 +8,7 @@
 #' @param n.cores The number of cores to be used. \code{n.cores > 1} means parallel processing.
 #'
 #' @examples
-#' processed <- generate_THA_features(Mcomp::M3[c(1:3)], n.cores=1)
+#' processed <- THA_features(Mcomp::M3[c(1:3)], n.cores=1)
 #' processed[[1]]$features
 #'
 #' @export
