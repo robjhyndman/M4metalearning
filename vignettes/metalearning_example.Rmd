@@ -83,7 +83,7 @@ Without further ado, lets process the training set to generate all forecast and 
 
 ````{r eval=TRUE}
 #this will take time
-M4_train <- calc_forecasts(M4_train, forec_methods(), n.cores=1)
+M4_train <- calc_forecasts(M4_train, forec_methods(), n.cores=2)
 #once we have the forecasts, we can calculate the errors
 M4_train <- calc_errors(M4_train)
 ```
@@ -168,8 +168,8 @@ It only remains now to test this model with the test dataset.
 If we want to do prediction in a 'real' forecasting exercise, we only need to extract the features from the test dataset and process the forecasts methods, no error measure is necessary. We proceed to calculate the individual forecasts and extrat the features on the series of the test dataset.
 
 ````{r}
-M4_test <- calc_forecasts(M4_test, forec_methods(), n.cores=1)
-M4_test <- THA_features(M4_test, n.cores=1)
+M4_test <- calc_forecasts(M4_test, forec_methods(), n.cores=2)
+M4_test <- THA_features(M4_test, n.cores=2)
 ````
 
 With this new information, the forecast based on the metalearning model can be calculated. Predictions can be calculated directly using the `xgb.Booster` object and the `predict` function, but the output then must be transformed to probabilities applying the softmax transform. The function `predict_selection_ensemble` is provided in the `M4metalearning` package for ease of use. Similar to the `predict` fuctions, it takes as parameters the model and a matrix with the features of the series. It outputs the predictions of the metalearning model, a matrix with the weights of the linear combination of methods, one row for each series. In order to create the `newdata` matrix

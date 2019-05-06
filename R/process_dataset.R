@@ -103,6 +103,9 @@ calc_errors <- function(dataset, use.precalc.naive2 = FALSE) {
       naive2_smape <- smape_err[nrow(smape_err),]
       total_naive2_errors <- total_naive2_errors + c(mean(naive2_mase),
                                                      mean(naive2_smape))
+      if (anyNA(total_naive2_errors)) {
+        stop(paste("Invalid error values when processing series: ",i))
+      }
       #remove the naive2 calculation from the output forecasts
       lentry$mase_err <- mase_err[-nrow(mase_err),]
       lentry$smape_err <- smape_err[-nrow(smape_err),]
@@ -274,7 +277,8 @@ calc_forecasts <- function(dataset, methods, n.cores=1) {
 
   ret_list <- list_process_fun(dataset, function (seriesdata) {
     results <- process_forecast_methods(seriesdata, methods)
-    ff <- t(sapply(results, function (resentry) resentry$forecasts))
+    #ff <- t(sapply(results, function (resentry) resentry$forecasts))
+    ff <- do.call("rbind", lapply(results, function (resentry) resentry$forecasts))
     method_names <- sapply(results, function (resentry) resentry$method_name)
     row.names(ff) <- method_names
     seriesdata$ff <- ff

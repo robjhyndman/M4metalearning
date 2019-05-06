@@ -92,13 +92,13 @@ create_feat_classif_problem <- function(dataset) {
   return_data
 }
 
-#' @describeIn metatemp_train Train a method-selecting ensemble that minimizes forecasting error
+#' Train a method-selecting ensemble that minimizes forecasting error
 #'
 #' @param data A matrix with the input features data (extracted from the series).
 #'     One observation (the features from the original series) per row.
 #' @param errors A matrix with the errors produced by each of the forecasting methods.
 #'     Each row is a vector with the errors of the forecasting methods.
-#' @param labels A numeric vector from 0 to (nclass -1) with the targe labels for classification.
+#' @param param speficic parameters to be passed to the xgboost::xgb.train function, otherwise a default value will be given
 #'
 #' @export
 train_selection_ensemble <- function(data, errors, param=NULL) {
@@ -252,6 +252,7 @@ summary_performance <- function(predictions, dataset, print.summary = TRUE, use.
 #'   unless the remaining \code{x} would be too short.}
 #' }
 #' @export
+#' @import forecast
 temp_holdout <- function(dataset) {
   lapply(dataset, function(seriesentry) {
     frq <- stats::frequency(seriesentry$x)
@@ -264,14 +265,15 @@ temp_holdout <- function(dataset) {
                         " observations, adding a mean constant") )
 
         seriesentry$x <- stats::ts(c(seriesentry$x, rep(mean(seriesentry$x),2 - seriesentry$h )),
-                          frequency = frq)
+                          frequency = frq,
+                          start=stats::start(seriesentry$x))
         seriesentry$h <- 2
       }
     }
     #note: we get first the tail, if we subset first, problems will arise (a temp variable for x should be used)
-    seriesentry$xx <- utils::tail(seriesentry$x, seriesentry$h)
-    seriesentry$x <- stats::ts( utils::head(seriesentry$x, -seriesentry$h),
-                                frequency = frq)
+    stopifnot(class(seriesentry$x)=="ts")
+    seriesentry$xx <- subset(seriesentry$x, subset=NULL, start = length(seriesentry$x) - seriesentry$h + 1)
+    seriesentry$x <- subset(seriesentry$x, subset=NULL, end = length(seriesentry$x) - seriesentry$h )
     if (!is.null(seriesentry$n)) {
       seriesentry$n <- length(seriesentry$x)
     }

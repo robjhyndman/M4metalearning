@@ -11,6 +11,8 @@ Imports: forecast,
          parallel,
          Mcomp,
          tibble,
+         tsfeatures,
+         rBayesianOptimization,
          devtools
 License: GPL-3
 Encoding: UTF-8

@@ -1,3 +1,19 @@
+#' @export
+heterogeneity_tsfeat_workaround <- function(x) {
+  output <- c(arch_acf =0, garch_acf=0, arch_r2=0, garch_r2=0)
+  try( output <- tsfeatures::heterogeneity(x) )
+  output
+}
+
+#' @export
+hw_parameters_tsfeat_workaround <- function(x) {
+  hw_fit <- NULL
+  hw_fit$par <- c(NA, NA, NA)
+  try(hw_fit <- forecast::ets(x, model=c("AAA")), silent=TRUE)
+  names(hw_fit$par) <- c("hw_alpha", "hw_beta" , "hw_gamma")
+  hw_fit$par[1:3]
+}
+
 #' Calculate features from Talagala, Hyndman, Athanaspoulos and add them to the dataset
 #'
 #'  For each series in \code{dataset}, the feature set used in
@@ -12,6 +28,7 @@
 #' processed[[1]]$features
 #'
 #' @export
+#' @importFrom tsfeatures tsfeatures
 THA_features <-
   function(dataset, n.cores=1) {
     list_process_fun <- lapply
@@ -34,7 +51,7 @@ THA_features <-
                                  tryCatch({
                                    #additional features from Talagala, Hyndman, Athanasopoulos 2018
                                    featrow <-
-                                     tsfeatures::tsfeatures(
+                                     tsfeatures(
                                        serdat$x,
                                        features = c(
                                          "acf_features",
@@ -42,7 +59,7 @@ THA_features <-
                                          "crossing_points",
                                          "entropy",
                                          "flat_spots",
-                                         "heterogeneity_tsfeat_workaround",
+                                         heterogeneity_tsfeat_workaround,
                                          "holt_parameters",
                                          "hurst",
                                          "lumpiness",
@@ -50,7 +67,7 @@ THA_features <-
                                          "pacf_features",
                                          "stl_features",
                                          "stability",
-                                         "hw_parameters_tsfeat_workaround",
+                                         hw_parameters_tsfeat_workaround,
                                          "unitroot_kpss",
                                          "unitroot_pp"
                                        )
@@ -96,18 +113,4 @@ THA_features <-
     dataset_feat
   }
 
-#' @export
-heterogeneity_tsfeat_workaround <- function(x) {
-  output <- c(arch_acf =0, garch_acf=0, arch_r2=0, garch_r2=0)
-  try( output <- tsfeatures::heterogeneity(x) )
-  output
-}
 
-#' @export
-hw_parameters_tsfeat_workaround <- function(x) {
-  hw_fit <- NULL
-  hw_fit$par <- c(NA, NA, NA)
-  try(hw_fit <- forecast::ets(x, model=c("AAA")), silent=TRUE)
-  names(hw_fit$par) <- c("hw_alpha", "hw_beta" , "hw_gamma")
-  hw_fit$par[1:3]
-}

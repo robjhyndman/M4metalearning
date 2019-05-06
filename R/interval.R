@@ -1,3 +1,47 @@
+#this function calculates all the parts that can be
+#taken outside of the gradient-hess calculation,
+#and added later as a multiplication:
+#normalizing via the horizon steps, the denom in the mase, calc, etc..
+calc_external_weight <- function(insample, h) {
+  frq <- stats::frequency(insample)
+  forecastsNaiveSD <- rep(NA,frq)
+  for (j in (frq+1):length(insample)){
+    forecastsNaiveSD <- c(forecastsNaiveSD, insample[j-frq])
+  }
+  masep<-mean(abs(insample-forecastsNaiveSD),na.rm = TRUE)
+  c( 1 / (masep *h ), 1/h)
+}
+
+
+#' @export
+create_combi_info <- function(dataset) {
+  #transform the dataset into matrix format
+  #with one forecast horizon per row, that will be properly weighted
+  #instead of one series per row, to simplify the objective function
+  forec_true_w <- lapply(dataset, function (seriesentry) {
+    external_weight <- calc_external_weight(seriesentry$x, seriesentry$h)
+    t(sapply(1:seriesentry$h, function(i) {
+      c(t(seriesentry$ff[, i]), seriesentry$xx[i], external_weight)
+    }))
+  })
+  forec_true_w <- do.call(rbind, forec_true_w)
+
+  data <- lapply(dataset, function (lentry) {
+    seriesdata <- t(replicate(lentry$h,
+                              as.numeric(lentry$features)))
+    colnames(seriesdata) <- names(lentry$features)
+    seriesdata
+  })
+  data <- do.call(rbind, data)
+
+  ff <- forec_true_w[, 1:nrow(dataset[[1]]$ff)]
+  xx <- forec_true_w[, nrow(dataset[[1]]$ff) + 1]
+  ew <- forec_true_w[, ncol(forec_true_w) - 1]
+  eh <- forec_true_w[, ncol(forec_true_w) ]
+  list(data=data, ff=ff, xx=xx, ew=ew, eh=eh)
+}
+
+
 #' @export
 opt_msis <- function(w, ff, radius, xx, ew) {
   w <- t(replicate(nrow(radius), w))
