@@ -65,7 +65,7 @@ M4_test <- temp_holdout(M4_test)
 
 We then apply the forecasting methods to each series in the training dataset and keep their forecast, as well as calculate the forecasting error they produce. We measure the forecasting error using the OWI formula used in the M4 competition, an average of MASE and SMAPE errors.
 
-This package provides the function `calc_forecasts` that takes as input the training dataset with the time series and a list of forecasting methods to apply to it. We can see in the documentation of the function `calc_forecasts` that the input dataset requires the following format: A `list` with each element having the following structure:
+This package provides the function `process_forecasts` that takes as input the training dataset with the time series and a list of forecasting methods to apply to it. We can see in the documentation of the function `process_forecasts` that the input dataset requires the following format: A `list` with each element having the following structure:
 
 * `x` : Containing the series as a `ts` object.
 * `h` : An integer with the amount of future moments to forecast.
@@ -83,12 +83,12 @@ Without further ado, lets process the training set to generate all forecast and 
 
 ````{r eval=TRUE}
 #this will take time
-M4_train <- calc_forecasts(M4_train, forec_methods(), n.cores=2)
+M4_train <- process_forecasts(M4_train, forec_methods(), n.cores=2)
 #once we have the forecasts, we can calculate the errors
 M4_train <- calc_errors(M4_train)
 ```
 
-Now we have in `M4_train` the series, the forecasts of each method for each series, and the errors of these forecasts. Specifically, `calc_forecasts` produces as output a list, with each element having the following structure:
+Now we have in `M4_train` the series, the forecasts of each method for each series, and the errors of these forecasts. Specifically, `process_forecasts` produces as output a list, with each element having the following structure:
 
 * x : The series to be forecasted.
 * h : The amount of moments into the future to forecast.
@@ -105,17 +105,17 @@ The information in `M4_train` (the series, the forecasts and the errors produced
 
 The metalearning method we are proposing uses features extracted from the series instead of the raw series. With these features, it trains a xgboost model that gives weights to the forecast methods in order to minimize the OWI error (roughly speaking).
 
-The specific features extracted from the series are a key part of the process, and in this package, the function `THA_features` calculates such features. A rationale and description of the features may be seen in a --upcoming paper from (Talagala, Hyndman and Athanasopoulos, 2018)--, though the actual set of features extracted is slightly different.
+The specific features extracted from the series are a key part of the process, and in this package, the function `process_THA_features` calculates such features. A rationale and description of the features may be seen in a --upcoming paper from (Talagala, Hyndman and Athanasopoulos, 2018)--, though the actual set of features extracted is slightly different.
 
-`THA_features` processes once again a dataset of times series, a list of elements containing at least the field `x` with a `ts` object (in the spirit of the input and output datasets of `calc_forecasts` and the `Mcomp` package data format).
+`process_THA_features` processes once again a dataset of times series, a list of elements containing at least the field `x` with a `ts` object (in the spirit of the input and output datasets of `process_forecasts` and the `Mcomp` package data format).
 
 
-The output of `THA_features` is its input list, but to each element, the field `features` has been added. `features` is a `tibble` object with the extracted features. `THA_features` uses the package `tsfeatures` for extracting the features.
+The output of `process_THA_features` is its input list, but to each element, the field `features` has been added. `features` is a `tibble` object with the extracted features. `process_THA_features` uses the package `tsfeatures` for extracting the features.
 
 The `features` field is used by other functions in the package, so users may use their own set of features by setting this field.
 
 ````{r}
-M4_train <- THA_features(M4_train)
+M4_train <- process_THA_features(M4_train)
 ````
 
 Now we have in `M4_train` the series, its extracted features, forecasts and errors.
@@ -168,8 +168,8 @@ It only remains now to test this model with the test dataset.
 If we want to do prediction in a 'real' forecasting exercise, we only need to extract the features from the test dataset and process the forecasts methods, no error measure is necessary. We proceed to calculate the individual forecasts and extrat the features on the series of the test dataset.
 
 ````{r}
-M4_test <- calc_forecasts(M4_test, forec_methods(), n.cores=2)
-M4_test <- THA_features(M4_test, n.cores=2)
+M4_test <- process_forecasts(M4_test, forec_methods(), n.cores=2)
+M4_test <- process_THA_features(M4_test, n.cores=2)
 ````
 
 With this new information, the forecast based on the metalearning model can be calculated. Predictions can be calculated directly using the `xgb.Booster` object and the `predict` function, but the output then must be transformed to probabilities applying the softmax transform. The function `predict_selection_ensemble` is provided in the `M4metalearning` package for ease of use. Similar to the `predict` fuctions, it takes as parameters the model and a matrix with the features of the series. It outputs the predictions of the metalearning model, a matrix with the weights of the linear combination of methods, one row for each series. In order to create the `newdata` matrix
@@ -182,7 +182,7 @@ head(preds)
 ```
 
 The last step is calculating the actual forecasts by the linear combinations produced by the metalearning model. The function `ensemble_forecast` is provided for this task. It
-will take the `predictions` and the `dataset` in the output of format of `calc_forecasts` with the `ff` field and add the field `y_hat` with the actual forecasts
+will take the `predictions` and the `dataset` in the output of format of `process_forecasts` with the `ff` field and add the field `y_hat` with the actual forecasts
 to the  elements `dataset`.
 
 ````{r}

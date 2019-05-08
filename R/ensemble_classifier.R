@@ -121,7 +121,7 @@ train_selection_ensemble <- function(data, errors, param=NULL) {
   bst
 }
 
-#' @describeIn metatemp_train Produces predictions probabilities for the selection ensemble.
+#' @describeIn train_selection_ensemble Produces predictions probabilities for the selection ensemble.
 #' @param model The xgboost model
 #' @param newdata The feature matrix, one row per series
 #' @export
@@ -146,7 +146,7 @@ ensemble_forecast <- function(predictions, dataset, clamp_zero=TRUE) {
 
 
 
-#' @describeIn metatemp_train Analysis of the predictions, the weighted error and the selection error, along with extra information
+#' @describeIn train_selection_ensemble Analysis of the predictions, the weighted error and the selection error, along with extra information
 #' @param predictions A NXM matrix with N the number of observations(time series)
 #'                    and M the number of methods. Each row contains the weights assigned to the methods for the series
 #' @param dataset The list with the meta information, forecasts of each method...MUST contain the precalculated errors with calc_errors()!
@@ -285,9 +285,9 @@ temp_holdout <- function(dataset) {
 forecast_meta_M4 <- function(meta_model, x, h) {
 
   ele <- list(list(x=x, h=h))
-  ele <- THA_features(ele)
+  ele <- process_THA_features(ele)
 
-  ff <- process_forecast_methods(ele[[1]], forec_methods())
+  ff <- process_forecasts(ele[[1]], forec_methods())
   ff <- t(sapply(ff, function (lentry) lentry$forecast))
   rownames(ff) <- unlist(forec_methods())
 

@@ -22,95 +22,83 @@ hw_parameters_tsfeat_workaround <- function(x) {
 #'     is added.
 #' @param dataset A list the elements having a \code{ts} object with the name \code{x}
 #' @param n.cores The number of cores to be used. \code{n.cores > 1} means parallel processing.
+#' @param chunk_size The size of the chunk. \code{chunk_size>0} will process \code{dataset} by chunks.
+#' @param do_shuffle When processing by chunks, shuffle the data to get even comput. cost of the chunks
 #'
 #' @examples
-#' processed <- THA_features(Mcomp::M3[c(1:3)], n.cores=1)
+#' processed <- process_THA_features(Mcomp::M3[c(1:3)], n.cores=1)
 #' processed[[1]]$features
 #'
 #' @export
 #' @importFrom tsfeatures tsfeatures
-THA_features <-
-  function(dataset, n.cores=1) {
-    list_process_fun <- lapply
-    cl = -1
-    require(tsfeatures)
-    if (n.cores > 1) {
-      cl <- parallel::makeCluster(n.cores)
-      #parallel::clusterExport(cl, varlist="dataset", envir=environment())
-      parallel::clusterExport(cl, varlist=ls(), envir=environment())
-      parallel::clusterExport(cl, varlist=ls(envir=environment(THA_features)),
-                              envir = environment(THA_features))
-      parallel::clusterCall(cl, function() library(tsfeatures)) #required to find functions within tsfeatures
-      list_process_fun <- function(my_list, ...) {
-        parallel::parLapplyLB(cl, my_list, ...)
-      }
-    }
+process_THA_features <- function(dataset, n.cores=1,
+                                 chunk_size=0,
+                                 do_shuffle=TRUE,
+                         save_checkpoint_filename=NULL,
+                         load_checkpoint_filename=NULL) {
 
-    dataset_feat <- list_process_fun(dataset,
-                               function (serdat) {
-                                 tryCatch({
-                                   #additional features from Talagala, Hyndman, Athanasopoulos 2018
-                                   featrow <-
-                                     tsfeatures(
-                                       serdat$x,
-                                       features = c(
-                                         "acf_features",
-                                         "arch_stat",
-                                         "crossing_points",
-                                         "entropy",
-                                         "flat_spots",
-                                         heterogeneity_tsfeat_workaround,
-                                         "holt_parameters",
-                                         "hurst",
-                                         "lumpiness",
-                                         "nonlinearity",
-                                         "pacf_features",
-                                         "stl_features",
-                                         "stability",
-                                         hw_parameters_tsfeat_workaround,
-                                         "unitroot_kpss",
-                                         "unitroot_pp"
-                                       )
-                                     )
+  parchunk_THA <- chunkparfy( function (ll) {
+    featrow <- THA_feat(ll$x)
+    ll$features <- featrow
+    ll
+  }, n.cores, chunk_size, do_shuffle,
+             save_checkpoint_filename,
+             load_checkpoint_filename)
 
+  parchunk_THA(dataset)
+}
 
-                                   #additional features
-                                   series_length <- length(serdat$x)
-
-                                   featrow <- tibble::add_column(
-                                     featrow,
-                                     "series_length" = series_length)
-
-                                   featrow[is.na(featrow)] <-
-                                     0 #SET NAs TO 0 ?
+#' @describeIn process_THA_features
+#' Calculate features from Talagala, Hyndman, Athanaspoulos from a single time series
+#' @export
+THA_feat <- function(series) {
+  featrow <-tsfeatures(
+    series,
+    features = c(
+      "acf_features",
+      "arch_stat",
+      "crossing_points",
+      "entropy",
+      "flat_spots",
+      heterogeneity_tsfeat_workaround,
+      "holt_parameters",
+      "hurst",
+      "lumpiness",
+      "nonlinearity",
+      "pacf_features",
+      "stl_features",
+      "stability",
+      hw_parameters_tsfeat_workaround,
+      "unitroot_kpss",
+      "unitroot_pp"
+    )
+  )
 
 
-                                   #adding dummy variables for non seasonal series
-                                   #that are not output by tsfeatures
-                                    if (length(featrow) == 37) {
-                                      featrow <- tibble::add_column(featrow, "seas_acf1" = 0, .before = 7)
-                                      featrow <- tibble::add_column(featrow, "seas_pacf" =
-                                                                     0, .before = 24)
-                                      featrow = tibble::add_column(
-                                        featrow,
-                                      "seasonal_strength" = 0,
-                                      "peak" = 0,
-                                      "trough" = 0,
-                                      .before=33)
-                                    }
-                                    serdat$features <- featrow
-                                    serdat
-                                 }, error = function(e) {
-                                   print(e)
-                                   return(e)
-                                 })
-                               })
+  #additional features
+  series_length <- length(series)
 
-    if (n.cores > 1) {
-      parallel::stopCluster(cl)
-    }
+  featrow <- tibble::add_column(
+    featrow,
+    "series_length" = series_length)
 
-    dataset_feat
+  featrow[is.na(featrow)] <-
+    0 #SET NAs TO 0 ?
+
+
+  #adding dummy variables for non seasonal series
+  #that are not output by tsfeatures
+  if (length(featrow) == 37) {
+    featrow <- tibble::add_column(featrow, "seas_acf1" = 0, .before = 7)
+    featrow <- tibble::add_column(featrow, "seas_pacf" =
+                                    0, .before = 24)
+    featrow = tibble::add_column(
+      featrow,
+      "seasonal_strength" = 0,
+      "peak" = 0,
+      "trough" = 0,
+      .before=33)
   }
-
+  featrow
+}
 

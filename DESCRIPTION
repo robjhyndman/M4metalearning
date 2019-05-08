@@ -13,6 +13,8 @@ Imports: forecast,
          tibble,
          tsfeatures,
          rBayesianOptimization,
+         future,
+         future.apply,
          devtools
 License: GPL-3
 Encoding: UTF-8

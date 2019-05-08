@@ -2,9 +2,16 @@
 % Please edit documentation in R/ensemble_classifier.R
 \name{train_selection_ensemble}
 \alias{train_selection_ensemble}
+\alias{predict_selection_ensemble}
+\alias{summary_performance}
 \title{Train a method-selecting ensemble that minimizes forecasting error}
 \usage{
 train_selection_ensemble(data, errors, param = NULL)
+
+predict_selection_ensemble(model, newdata)
+
+summary_performance(predictions, dataset, print.summary = TRUE,
+  use.precalc.naive2 = FALSE)
 }
 \arguments{
 \item{data}{A matrix with the input features data (extracted from the series).
@@ -14,7 +21,27 @@ One observation (the features from the original series) per row.}
 Each row is a vector with the errors of the forecasting methods.}
 
 \item{param}{speficic parameters to be passed to the xgboost::xgb.train function, otherwise a default value will be given}
+
+\item{model}{The xgboost model}
+
+\item{newdata}{The feature matrix, one row per series}
+
+\item{predictions}{A NXM matrix with N the number of observations(time series)
+and M the number of methods. Each row contains the weights assigned to the methods for the series}
+
+\item{dataset}{The list with the meta information, forecasts of each method...MUST contain the precalculated errors with calc_errors()!}
+
+\item{print.summary}{Boolean indicating wheter to print the information}
+
+\item{use.precalc.naive2}{Boolean indicating wheter the naive2 errors are already contained in \code{dataset} for skip its calculation}
 }
 \description{
 Train a method-selecting ensemble that minimizes forecasting error
 }
+\section{Functions}{
+\itemize{
+\item \code{predict_selection_ensemble}: Produces predictions probabilities for the selection ensemble.
+
+\item \code{summary_performance}: Analysis of the predictions, the weighted error and the selection error, along with extra information
+}}
+

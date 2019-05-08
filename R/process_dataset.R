@@ -53,6 +53,63 @@ mase_cal <- function(insample, outsample, forecasts) {
 }
 
 
+
+#calculate the MASE and SMAPE errors for all forecasts in seriesentry$ff
+calc_err <- function(serielement) {
+
+  insample <- serielement$x
+
+  ff <- serielement$ff
+
+  frq <- frq <- stats::frequency(insample)
+  insample <- as.numeric(insample)
+  outsample <- as.numeric(serielement$xx)
+  masep <- mean(abs(utils::head(insample,-frq) - utils::tail(insample,-frq)))
+
+
+  repoutsample <- matrix(
+    rep(outsample, each=nrow(ff)),
+    nrow=nrow(ff))
+
+  smape_err <- 200*abs(ff - repoutsample) / (abs(ff) + abs(repoutsample))
+
+  mase_err <- abs(ff - repoutsample) / masep
+
+  serielement$smape_err <- smape_err
+  serielement$mase_err <- mase_err
+  serielement
+}
+
+proc.err <- function(dataset, n.cores=1) {
+  (futurlapplyfy(calc_err, n.cores))(dataset)
+}
+
+process_errors <- function(dataset, n.cores=1) {
+
+  if (is.null(attr(dataset, "avg_naive2_errors"))) {
+    message("Naive2 errors for OWA not found, calculating them...")
+
+    datanaive2 <- process_forecasts(dataset, list(naive2_forec()), n.cores)
+    datanaive2 <- proc.err(datanaive2)
+    #get the average of the two errors
+    err_naive2 <- sapply(datanaive2, function(ll) c(mean(ll$mase_err), mean(ll$smape_err)))
+    total_naive2_errors <- colMeans(err_naive2)
+
+    avg_naive2_errors <- list(avg_mase=total_naive2_errors[1],
+                              avg_smape=total_naive2_errors[2])
+
+    attr(dataset, "avg_naive2_errors") <- avg_naive2_errors
+  }
+
+  dataset <- proc.err(dataset)
+  avg_naive2_errors <- attr(dataset, "avg_naive2_errors")
+  lapply(dataset, function(ll) {
+    ll$errors <- 0.5*(rowMeans(ll$mase_err)/avg_naive2_errors$avg_mase +
+           rowMeans(ll$smape_err)/avg_naive2_errors$avg_smape)
+  })
+
+}
+
 ##-#'   \item{xx}{A time series of length \code{h} with the true future data.}
 ##-#
 ##-#'   \item{errors}{A vector of F elements containing the OWI errors produced by each of the
@@ -160,31 +217,31 @@ calc_errors <- function(dataset, use.precalc.naive2 = FALSE) {
 #custom methods
 
 
-
-#calculate forecast predictions
-calculate_forecast_preds <- function(insample, h, forec.method) {
-  forec.method(x=insample, h=h)
-}
-
-
-#calc SMAPE and MASE errors for a given model and parameters
-calculate_errors <- function(insample, outsample, forecasts) {
-  SMAPE <- smape_cal(outsample, forecasts)
-  MASE <- mase_cal(insample, outsample, forecasts)
-  c(mean(SMAPE) , mean(MASE))
-}
-
-#output only the owi error
-calculate_owi <- function(insample, outsample, snaive_errors, forecasts) {
-  errors <- calculate_errors(insample, outsample, forecasts)
-  0.5*( (errors[1] / snaive_errors[1]) +  (errors[2]/snaive_errors[2]))
-}
+#
+# #calculate forecast predictions
+# calculate_forecast_preds <- function(insample, h, forec.method) {
+#   forec.method(x=insample, h=h)
+# }
+#
+#
+# #calc SMAPE and MASE errors for a given model and parameters
+# calculate_errors <- function(insample, outsample, forecasts) {
+#   SMAPE <- smape_cal(outsample, forecasts)
+#   MASE <- mase_cal(insample, outsample, forecasts)
+#   c(mean(SMAPE) , mean(MASE))
+# }
+#
+# #output only the owi error
+# calculate_owi <- function(insample, outsample, snaive_errors, forecasts) {
+#   errors <- calculate_errors(insample, outsample, forecasts)
+#   0.5*( (errors[1] / snaive_errors[1]) +  (errors[2]/snaive_errors[2]))
+# }
 
 
 #processes forecast methods on a series
-#given a series component
-#and list of forecast methods
-process_forecast_methods <- function(seriesdata, methods_list) {
+#given a series component (the series and the required horizon)
+#and the list of forecast methods to apply
+calc_forecast_methods <- function(seriesdata, methods_list) {
 
   #process each method in methods_list to produce the forecasts and the errors
   lapply(methods_list, function (mentry) {
@@ -202,6 +259,8 @@ process_forecast_methods <- function(seriesdata, methods_list) {
     list( forecasts=forecasts, method_name=method_name)
   })
 }
+
+
 
 
 #' Generate Forecasts for a Time Series Dataset
@@ -223,18 +282,16 @@ process_forecast_methods <- function(seriesdata, methods_list) {
 #' No additional parameters are required in the functions.
 #'
 #' @param dataset The list containing the series. See details for the required format.
-#' @param methods A list of strings with the names of the functions that generate
+#' @param forecast_methods A list of strings with the names of the functions that generate
 #' the forecasts.
 #' @param n.cores The number of cores to be used. \code{n.cores > 1} means parallel processing.
+#' #' @param n.cores The number of cores to be used. \code{n.cores > 1} means parallel processing.
 #'
-#' @return A list with the elements having the following structure
+#' @return A list with the same structure as \code{dataset} but with the added entry
 #' \describe{
-#'   \item{x}{A time series object \code{ts} with the historical data.}
-#'   \item{h}{The number of required forecasts.}
-
 #'   \item{ff}{A matrix with F rows and \code{h} columns. Each row contains
 #'   the forecasts of each method in \code{methods} }
-#' }
+#' } to each element on a list
 #'
 #' @examples
 #' auto_arima_forec <- function(x, h) {
@@ -258,37 +315,136 @@ process_forecast_methods <- function(seriesdata, methods_list) {
 #'   methods
 #' }
 #' methods <- create_example_list()
-#' forec_results <- calc_forecasts(Mcomp::M3[1:4], methods, n.cores=1)
+#' forec_results <- process_forecasts(Mcomp::M3[1:4], methods, n.cores=1)
 #'
 #' @export
-calc_forecasts <- function(dataset, methods, n.cores=1) {
-  list_process_fun <- lapply
-  cl = -1
+process_forecasts <- function(dataset, forecast_methods, n.cores=1, chunk_size=0, do_shuffle=0,
+                              save_checkpoint_filename,
+                              load_checkpoint_filename) {
 
-  if (n.cores > 1) {
-    cl <- parallel::makeCluster(n.cores)
-    .env <- as.environment(as.list(environment(process_forecast_methods), all.names = TRUE))
-    lapply(methods, function(method) assign(method, get(method), .env))
-    parallel::clusterExport(cl, varlist=ls(envir=.env), envir = .env)
-    list_process_fun <- function(my_list, ...) {
-      parallel::parLapplyLB(cl, my_list, ...)
-    }
-  }
-
-  ret_list <- list_process_fun(dataset, function (seriesdata) {
-    results <- process_forecast_methods(seriesdata, methods)
-    #ff <- t(sapply(results, function (resentry) resentry$forecasts))
+  calcforec_fun <- function (seriesdata) {
+    results <- calc_forecast_methods(seriesdata, forecast_methods)
     ff <- do.call("rbind", lapply(results, function (resentry) resentry$forecasts))
     method_names <- sapply(results, function (resentry) resentry$method_name)
     row.names(ff) <- method_names
     seriesdata$ff <- ff
     seriesdata
-  })
-
-  if (n.cores > 1) {
-    parallel::stopCluster(cl)
   }
 
-  ret_list
+  parchunk_calcforec <- chunkparfy( calcforec_fun,
+                                    n.cores, chunk_size, do_shuffle,
+                                    save_checkpoint_filename,
+                                    load_checkpoint_filename)
+
+  parchunk_calcforec(dataset)
 }
 
+
+
+
+#transform a function that works on a list, into the same function, but with saving/resuming capabilities
+#' @export
+chunkify <- function( myFUN, chunk_size, do_shuffle=TRUE,
+                      save_checkpoint_filename=NULL,
+                      load_checkpoint_filename=NULL) {
+
+  function(dataset) {
+    #no chunk_size, return the original function
+    if (chunk_size==0) {
+      return(myFUN(dataset))
+    }
+
+    temp_dataset <- NULL
+
+    if (do_shuffle) {
+      shuffling <- sample(length(dataset))
+    } else {
+      shuffling <- 1:length(dataset)
+    }
+
+
+    data_length <- length(dataset)
+
+    chunk_index <- seq(1, data_length, chunk_size)
+    chunk_index <- c(chunk_index, data_length+1) #add a final DUMMY chunk
+    start_chunk <- 1
+
+    if (!is.null(load_checkpoint_filename)) {
+      message(paste("Resuming processing of the file:", load_checkpoint_filename))
+      tmp_chunk_size <- chunk_size
+      tryCatch( load(load_checkpoint_filename),
+                error= function(e) { stop("Resuming filename not found!!");e})
+      if (tmp_chunk_size != chunk_size) {
+        stop(paste("Function call chunk_size and resumed chunk_size do not coincide, please check!! Resuming chunk_size was: ", chunk_size))
+      }
+      resume_ind <- length(temp_dataset)+1
+      start_chunk <- which(chunk_index == resume_ind)
+
+      if (length(start_chunk) != 1) {
+        stop("Error when calculating resuming starting chunk")
+      }
+
+      if (start_chunk == length(chunk_index)) {
+        message("No more processing is required, returning previous computations")
+        return(temp_dataset[shuffling])
+      }
+    }
+
+    #shuffle the dataset to even the processing cost of each chunk
+    #after we have loaded the previous shuffling if we are resuming the computation
+    dataset <- dataset[shuffling]
+
+
+    for (i in start_chunk:(length(chunk_index)-1)) {
+      start_ind = chunk_index[i]
+      end_ind = chunk_index[i+1]-1
+      temp_dataset <- append(temp_dataset, myFUN(dataset[start_ind:end_ind]))
+      message(paste("From ", start_ind, " to", end_ind,
+                    ", ", round(100*(start_ind-1) / length(dataset),2),
+                    "% of the dataset processed"))
+      if (!is.null(save_checkpoint_filename)) {
+        save(temp_dataset, shuffling, chunk_size, file = save_checkpoint_filename)
+      }
+    }
+
+    #return the processed dataset
+    temp_dataset[order(shuffling)]
+
+  }
+}
+
+
+### get a function that works on an element and
+### return a lapply version of the function, but parallel
+#' @export
+futurlapplyfy <- function(myFUN, n.cores=1) {
+  function (dataset) {
+    list_process_fun <- lapply
+    aaaa <- n.cores
+    if (n.cores > 1) {
+      oldplan <- future::plan()
+      newstrat <- future::tweak(future::multiprocess, workers = n.cores)
+      future::plan(newstrat)
+      on.exit(future::plan(oldplan), add = TRUE)
+      list_process_fun <- function(dataset, ...) {
+        future.apply::future_lapply(dataset, ...)
+      }
+    }
+    list_process_fun(dataset, myFUN)
+  }
+}
+
+
+
+chunkparfy <- function(myFUN, n.cores, chunk_size, do_shuffle=TRUE,
+                       save_checkpoint_filename=NULL,
+                       load_checkpoint_filename=NULL) {
+
+  myparfun <- futurlapplyfy(myFUN, n.cores)
+  mychunkparfun <- chunkify(myparfun, chunk_size,
+                                            do_shuffle,
+                                            save_checkpoint_filename,
+                                            load_checkpoint_filename)
+  mychunkparfun
+
+}
