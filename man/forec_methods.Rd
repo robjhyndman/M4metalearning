@@ -15,7 +15,7 @@
 \title{Forecasting methods list
 A list of the forecasting methods for use in the metalearnig process
 The list follows the format described in the parameter \code{methods}
-of \code{\link{calc_forecasts}}}
+of \code{{process_forecasts}}}
 \usage{
 forec_methods()
 
@@ -48,7 +48,7 @@ naive2_forec(x, h)
 Forecasting methods list
 A list of the forecasting methods for use in the metalearnig process
 The list follows the format described in the parameter \code{methods}
-of \code{\link{calc_forecasts}}
+of \code{{process_forecasts}}
 }
 \section{Functions}{
 \itemize{

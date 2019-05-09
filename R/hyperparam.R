@@ -2,6 +2,11 @@
 
 #' @export
 hyperparameter_search <- function(dataset, filename="meta_hyper.RData", n_iter=1000, n.cores=1) {
+
+  if (length(dataset) < 10) {
+    stop("Not enough data to do the crossvalidation!")
+  }
+
   N_THREAD = n.cores
   whole_dataset <- dataset
   #prepare the folds

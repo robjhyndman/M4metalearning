@@ -80,121 +80,51 @@ calc_err <- function(serielement) {
   serielement
 }
 
-proc.err <- function(dataset, n.cores=1) {
-  (futurlapplyfy(calc_err, n.cores))(dataset)
+proc.err <- function(dataset, n.cores=1, chunk_size=0) {
+  (chunkparfy(calc_err, n.cores, chunk_size,
+              do_shuffle = TRUE,
+              save_checkpoint_filename = NULL,
+              load_checkpoint_filename = NULL))(dataset)
 }
 
-process_errors <- function(dataset, n.cores=1) {
+#' @export
+process_errors <- function(dataset, n.cores=1, chunk_size=0) {
+  #sanity checking
+  stopifnot("xx" %in% names(dataset[[1]]))
+  stopifnot("ff" %in% names(dataset[[1]]))
+  stopifnot("x" %in% names(dataset[[1]]))
 
   if (is.null(attr(dataset, "avg_naive2_errors"))) {
     message("Naive2 errors for OWA not found, calculating them...")
 
-    datanaive2 <- process_forecasts(dataset, list(naive2_forec()), n.cores)
+    datanaive2 <- process_forecasts(dataset, list("naive2_forec"), n.cores, chunk_size,
+                                    do_shuffle = TRUE,
+                                    save_checkpoint_filename = NULL,
+                                    load_checkpoint_filename = NULL)
     datanaive2 <- proc.err(datanaive2)
     #get the average of the two errors
     err_naive2 <- sapply(datanaive2, function(ll) c(mean(ll$mase_err), mean(ll$smape_err)))
+
+    if (anyNA(err_naive2)) {
+      stop(paste("Invalid values when calculating naive2 errors"))
+    }
+
     total_naive2_errors <- colMeans(err_naive2)
 
     avg_naive2_errors <- list(avg_mase=total_naive2_errors[1],
                               avg_smape=total_naive2_errors[2])
 
     attr(dataset, "avg_naive2_errors") <- avg_naive2_errors
+  } else {
+    message("Reusing previously calculated Naive2 errors...")
   }
-
-  dataset <- proc.err(dataset)
   avg_naive2_errors <- attr(dataset, "avg_naive2_errors")
-  lapply(dataset, function(ll) {
+  dataset <- proc.err(dataset)
+  dataset <- lapply(dataset, function(ll) {
     ll$errors <- 0.5*(rowMeans(ll$mase_err)/avg_naive2_errors$avg_mase +
            rowMeans(ll$smape_err)/avg_naive2_errors$avg_smape)
+    ll
   })
-
-}
-
-##-#'   \item{xx}{A time series of length \code{h} with the true future data.}
-##-#
-##-#'   \item{errors}{A vector of F elements containing the OWI errors produced by each of the
-##-#'   methods in \code{methods}}
-##-#'   }
-
-#' @export
-calc_errors <- function(dataset, use.precalc.naive2 = FALSE) {
-  #sanity checking
-  stopifnot("xx" %in% names(dataset[[1]]))
-  stopifnot("ff" %in% names(dataset[[1]]))
-  stopifnot("x" %in% names(dataset[[1]]))
-
-  if (use.precalc.naive2) {
-    stopifnot(!is.null(attr(dataset, "avg_naive2_errors") ))
-    #stopifnot("naive2_mase" %in% names(dataset[[1]]))
-    #stopifnot("naive2_smape" %in% names(dataset[[1]]))
-  }
-
-  total_naive2_errors <- c(0,0) #accumulate the errors of the naive2 to get its average over the dataset
-  for (i in 1:length(dataset)) {
-    tryCatch({
-    lentry <- dataset[[i]]
-    insample <- lentry$x
-
-    #extrac forecasts and attach the naive2 for completion
-    ff <- lentry$ff
-    if (!use.precalc.naive2) {
-      ff <- rbind(ff, naive2_forec(insample, lentry$h))
-    }
-
-    frq <- frq <- stats::frequency(insample)
-    insample <- as.numeric(insample)
-    outsample <- as.numeric(lentry$xx)
-    masep <- mean(abs(utils::head(insample,-frq) - utils::tail(insample,-frq)))
-
-
-    repoutsample <- matrix(
-      rep(outsample, each=nrow(ff)),
-      nrow=nrow(ff))
-
-    smape_err <- 200*abs(ff - repoutsample) / (abs(ff) + abs(repoutsample))
-
-    mase_err <- abs(ff - repoutsample) / masep
-
-    if (!use.precalc.naive2) {
-      naive2_mase <- mase_err[nrow(mase_err), ]
-      naive2_smape <- smape_err[nrow(smape_err),]
-      total_naive2_errors <- total_naive2_errors + c(mean(naive2_mase),
-                                                     mean(naive2_smape))
-      if (anyNA(total_naive2_errors)) {
-        stop(paste("Invalid error values when processing series: ",i))
-      }
-      #remove the naive2 calculation from the output forecasts
-      lentry$mase_err <- mase_err[-nrow(mase_err),]
-      lentry$smape_err <- smape_err[-nrow(smape_err),]
-    } else {
-      lentry$mase_err <- mase_err
-      lentry$smape_err <- smape_err
-    }
-
-    dataset[[i]] <- lentry
-
-    } , error = function (e) {
-      print(paste("Error when processing OWAs in series: ", i))
-      print(e)
-      e
-    })
-  }
-
-  if (!use.precalc.naive2) {
-    total_naive2_errors <- total_naive2_errors / length(dataset)
-    avg_naive2_errors <- list(avg_mase=total_naive2_errors[1],
-                            avg_smape=total_naive2_errors[2])
-  } else {
-    avg_naive2_errors <- attr(dataset, "avg_naive2_errors")
-  }
-
-
-  for (i in 1:length(dataset)) {
-    lentry <- dataset[[i]]
-    dataset[[i]]$errors <- 0.5*(rowMeans(lentry$mase_err)/avg_naive2_errors$avg_mase +
-                                  rowMeans(lentry$smape_err)/avg_naive2_errors$avg_smape)
-    #dataset[[i]]$errors <- rowMeans(lentry$smape_err)
-  }
   attr(dataset, "avg_naive2_errors") <- avg_naive2_errors
   dataset
 }
@@ -241,7 +171,7 @@ calc_errors <- function(dataset, use.precalc.naive2 = FALSE) {
 #processes forecast methods on a series
 #given a series component (the series and the required horizon)
 #and the list of forecast methods to apply
-calc_forecast_methods <- function(seriesdata, methods_list) {
+calc_forecasts <- function(seriesdata, methods_list) {
 
   #process each method in methods_list to produce the forecasts and the errors
   lapply(methods_list, function (mentry) {
@@ -318,12 +248,12 @@ calc_forecast_methods <- function(seriesdata, methods_list) {
 #' forec_results <- process_forecasts(Mcomp::M3[1:4], methods, n.cores=1)
 #'
 #' @export
-process_forecasts <- function(dataset, forecast_methods, n.cores=1, chunk_size=0, do_shuffle=0,
-                              save_checkpoint_filename,
-                              load_checkpoint_filename) {
+process_forecasts <- function(dataset, forecast_methods, n.cores=1, chunk_size=0, do_shuffle=TRUE,
+                              save_checkpoint_filename=NULL,
+                              load_checkpoint_filename=NULL) {
 
   calcforec_fun <- function (seriesdata) {
-    results <- calc_forecast_methods(seriesdata, forecast_methods)
+    results <- calc_forecasts(seriesdata, forecast_methods)
     ff <- do.call("rbind", lapply(results, function (resentry) resentry$forecasts))
     method_names <- sapply(results, function (resentry) resentry$method_name)
     row.names(ff) <- method_names
@@ -394,17 +324,24 @@ chunkify <- function( myFUN, chunk_size, do_shuffle=TRUE,
     #after we have loaded the previous shuffling if we are resuming the computation
     dataset <- dataset[shuffling]
 
-
+    start_time = proc.time()
     for (i in start_chunk:(length(chunk_index)-1)) {
       start_ind = chunk_index[i]
       end_ind = chunk_index[i+1]-1
-      temp_dataset <- append(temp_dataset, myFUN(dataset[start_ind:end_ind]))
-      message(paste("From ", start_ind, " to", end_ind,
-                    ", ", round(100*(start_ind-1) / length(dataset),2),
-                    "% of the dataset processed"))
+      chunked_data <- dataset[start_ind:end_ind]
+      temp_dataset <- append(temp_dataset, myFUN(chunked_data))
+
       if (!is.null(save_checkpoint_filename)) {
         save(temp_dataset, shuffling, chunk_size, file = save_checkpoint_filename)
       }
+      #remaining time calculations
+      endchunk_time <- proc.time()
+
+      message(paste("From ", start_ind, " to", end_ind,
+                    ", ", round(100*(end_ind) / length(dataset),2),
+                    "% of the dataset processed, remaining time: ",
+                    round( (endchunk_time - start_time)[3]* (length(dataset) / (end_ind) -1), 2 ),
+                    "seconds") )
     }
 
     #return the processed dataset
@@ -427,7 +364,7 @@ futurlapplyfy <- function(myFUN, n.cores=1) {
       future::plan(newstrat)
       on.exit(future::plan(oldplan), add = TRUE)
       list_process_fun <- function(dataset, ...) {
-        future.apply::future_lapply(dataset, ...)
+        furrr::future_map(dataset, ...)
       }
     }
     list_process_fun(dataset, myFUN)
@@ -441,10 +378,10 @@ chunkparfy <- function(myFUN, n.cores, chunk_size, do_shuffle=TRUE,
                        load_checkpoint_filename=NULL) {
 
   myparfun <- futurlapplyfy(myFUN, n.cores)
-  mychunkparfun <- chunkify(myparfun, chunk_size,
-                                            do_shuffle,
-                                            save_checkpoint_filename,
-                                            load_checkpoint_filename)
+  mychunkparfun <- chunkify(myparfun, chunk_size=chunk_size,
+                                            do_shuffle=do_shuffle,
+                                            save_checkpoint_filename = save_checkpoint_filename,
+                                            load_checkpoint_filename = load_checkpoint_filename)
   mychunkparfun
 
 }

@@ -149,7 +149,7 @@ ensemble_forecast <- function(predictions, dataset, clamp_zero=TRUE) {
 #' @describeIn train_selection_ensemble Analysis of the predictions, the weighted error and the selection error, along with extra information
 #' @param predictions A NXM matrix with N the number of observations(time series)
 #'                    and M the number of methods. Each row contains the weights assigned to the methods for the series
-#' @param dataset The list with the meta information, forecasts of each method...MUST contain the precalculated errors with calc_errors()!
+#' @param dataset The list with the meta information, forecasts of each method...MUST contain the precalculated errors with process_errors()!
 #' @param print.summary Boolean indicating wheter to print the information
 #' @param use.precalc.naive2 Boolean indicating wheter the naive2 errors are already contained in \code{dataset} for skip its calculation
 #'
@@ -161,7 +161,7 @@ summary_performance <- function(predictions, dataset, print.summary = TRUE, use.
   if (use.precalc.naive2) {
     stopifnot(!is.null(attr(dataset, "avg_naive2_errors") ))
   } else {
-    dataset <- calc_errors(dataset)
+    dataset <- process_errors(dataset)
   }
 
 
@@ -191,7 +191,7 @@ summary_performance <- function(predictions, dataset, print.summary = TRUE, use.
                                oracle_ff)
     }
 
-    dataset <- calc_errors(dataset, use.precalc.naive2 = TRUE)
+    dataset <- process_errors(dataset)
 
 
 

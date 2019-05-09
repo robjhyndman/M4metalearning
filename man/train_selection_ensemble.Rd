@@ -29,7 +29,7 @@ Each row is a vector with the errors of the forecasting methods.}
 \item{predictions}{A NXM matrix with N the number of observations(time series)
 and M the number of methods. Each row contains the weights assigned to the methods for the series}
 
-\item{dataset}{The list with the meta information, forecasts of each method...MUST contain the precalculated errors with calc_errors()!}
+\item{dataset}{The list with the meta information, forecasts of each method...MUST contain the precalculated errors with process_errors()!}
 
 \item{print.summary}{Boolean indicating wheter to print the information}
 

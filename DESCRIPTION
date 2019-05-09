@@ -14,7 +14,7 @@ Imports: forecast,
          tsfeatures,
          rBayesianOptimization,
          future,
-         future.apply,
+         furrr,
          devtools
 License: GPL-3
 Encoding: UTF-8

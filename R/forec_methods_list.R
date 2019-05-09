@@ -1,7 +1,7 @@
 #' Forecasting methods list
 #' A list of the forecasting methods for use in the metalearnig process
 #' The list follows the format described in the parameter \code{methods}
-#' of \code{\link{calc_forecasts}}
+#' of \code{{process_forecasts}}
 #' @seealso \code{\link{calc_forecasts}}
 #' @export
 forec_methods <- function() {

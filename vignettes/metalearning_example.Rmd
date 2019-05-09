@@ -85,7 +85,7 @@ Without further ado, lets process the training set to generate all forecast and 
 #this will take time
 M4_train <- process_forecasts(M4_train, forec_methods(), n.cores=2)
 #once we have the forecasts, we can calculate the errors
-M4_train <- calc_errors(M4_train)
+M4_train <- process_errors(M4_train)
 ```
 
 Now we have in `M4_train` the series, the forecasts of each method for each series, and the errors of these forecasts. Specifically, `process_forecasts` produces as output a list, with each element having the following structure:
@@ -94,7 +94,7 @@ Now we have in `M4_train` the series, the forecasts of each method for each seri
 * h : The amount of moments into the future to forecast.
 * ff : The forecasts of each methods, a matrix with the forecast of each methods per row.
 
-The function `calc_errors` also produces a list of series, adding or overwriting the following field:
+The function `process_errors` also produces a list of series, adding or overwriting the following field:
 
 * errors : A vector with the OWI errors produced by each method.
 
