@@ -6,7 +6,7 @@
 \alias{summary_performance}
 \title{Train a method-selecting ensemble that minimizes forecasting error}
 \usage{
-train_selection_ensemble(data, errors, param = NULL)
+train_selection_ensemble(data, errors, params, nrounds)
 
 predict_selection_ensemble(model, newdata)
 
@@ -20,7 +20,9 @@ One observation (the features from the original series) per row.}
 \item{errors}{A matrix with the errors produced by each of the forecasting methods.
 Each row is a vector with the errors of the forecasting methods.}
 
-\item{param}{speficic parameters to be passed to the xgboost::xgb.train function, otherwise a default value will be given}
+\item{params}{A list containing thr speficic parameters to be passed to the xgboost::xgb.train function}
+
+\item{nrounds}{nrounds param in xgb.train}
 
 \item{model}{The xgboost model}
 

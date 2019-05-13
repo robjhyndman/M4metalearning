@@ -21,7 +21,6 @@ hw_parameters_tsfeat_workaround <- function(x) {
 #'    and added to the \code{forec_err_dataset}. A \code{tibble} named \code{features}
 #'     is added.
 #' @param dataset A list the elements having a \code{ts} object with the name \code{x}
-#' @param n.cores The number of cores to be used. \code{n.cores > 1} means parallel processing.
 #' @param chunk_size The size of the chunk. \code{chunk_size>0} will process \code{dataset} by chunks.
 #' @param do_shuffle When processing by chunks, shuffle the data to get even comput. cost of the chunks
 #'
@@ -31,7 +30,7 @@ hw_parameters_tsfeat_workaround <- function(x) {
 #'
 #' @export
 #' @importFrom tsfeatures tsfeatures
-process_THA_features <- function(dataset, n.cores=1,
+process_THA_features <- function(dataset,
                                  chunk_size=0,
                                  do_shuffle=TRUE,
                          save_checkpoint_filename=NULL,
@@ -41,7 +40,7 @@ process_THA_features <- function(dataset, n.cores=1,
     featrow <- THA_feat(ll$x)
     ll$features <- featrow
     ll
-  }, n.cores, chunk_size, do_shuffle,
+  }, chunk_size, do_shuffle,
              save_checkpoint_filename,
              load_checkpoint_filename)
 

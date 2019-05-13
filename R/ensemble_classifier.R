@@ -2,14 +2,20 @@ check_customxgboost_version <- function() {
   #check if the custom xgboost version is installed
   if ( !requireNamespace("xgboost", quietly = TRUE)
        || (utils::packageVersion("xgboost") != '666.6.4.1') ) {
-    warning("Xgboost CUSTOM version is required!")
-    warning("Installing it from github pmontman/customxgboost")
-    devtools::install_github("pmontman/customxgboost")
+    stop("Xgboost CUSTOM version is required!")
+
+    #warning("Installing it from github pmontman/customxgboost")
+    #devtools::install_github("pmontman/customxgboost")
   }
 }
 
 # FIX FOR THE CUSTOM MULTICLASS OBJECTIVE : https://github.com/dmlc/xgboost/issues/2776
 
+
+.onLoad <- function(libname, pkgname) {
+  message("Loading metalearning: Checking custom xgboost version ")
+  check_customxgboost_version()
+}
 
 
 #' Softmax Transform
@@ -65,15 +71,7 @@ create_feat_classif_problem <- function(dataset) {
   stopifnot("features" %in% names(dataset[[1]]))
 
   if (!("errors" %in% names(dataset[[1]])) ) {
-    return(
-      list(
-        data=t(sapply(dataset, function (lentry) {
-          feat <- as.numeric(lentry$features)
-          names(feat) <- names(lentry$features)
-          feat
-          }))
-        )
-    )
+    stop("Must calculate the errors with process_errors to create the classification problem")
   }
 
   extracted <- t(sapply(dataset, function (lentry) {
@@ -98,28 +96,24 @@ create_feat_classif_problem <- function(dataset) {
 #'     One observation (the features from the original series) per row.
 #' @param errors A matrix with the errors produced by each of the forecasting methods.
 #'     Each row is a vector with the errors of the forecasting methods.
-#' @param param speficic parameters to be passed to the xgboost::xgb.train function, otherwise a default value will be given
+#' @param params A list containing thr speficic parameters to be passed to the xgboost::xgb.train function
+#' @param nrounds nrounds param in xgb.train
 #'
 #' @export
-train_selection_ensemble <- function(data, errors, param=NULL) {
-
-  check_customxgboost_version()
+train_selection_ensemble <- function(data, errors, params, nrounds) {
 
   dtrain <- xgboost::xgb.DMatrix(data)
   attr(dtrain, "errors") <- errors
 
-  if (is.null(param)) {
-    param <- list(max_depth=14, eta=0.575188, nthread = 3, silent=1,
-                  objective=error_softmax_obj,
-                  num_class=ncol(errors),
-                  subsample=0.9161483,
-                  colsample_bytree=0.7670739
-    )
-  }
+  params$objective <- error_softmax_obj
+  params$silent <- 0
+  params$num_class= length(errors[1,])
 
-  bst <- xgboost::xgb.train(param, dtrain, 94)
+  bst <- xgboost::xgb.train(params=params, dtrain, nrounds)
   bst
 }
+
+
 
 #' @describeIn train_selection_ensemble Produces predictions probabilities for the selection ensemble.
 #' @param model The xgboost model
@@ -132,6 +126,7 @@ predict_selection_ensemble <- function(model, newdata) {
 }
 
 
+#CANDIDATE TO REMOVE, ZERO CLAMPING....
 #' @export
 ensemble_forecast <- function(predictions, dataset, clamp_zero=TRUE) {
   for (i in 1:length(dataset)) {
@@ -158,12 +153,9 @@ summary_performance <- function(predictions, dataset, print.summary = TRUE, use.
   stopifnot("xx" %in% names(dataset[[1]]))
 
   #requires precalculated average errors of the dataset
-  if (use.precalc.naive2) {
-    stopifnot(!is.null(attr(dataset, "avg_naive2_errors") ))
-  } else {
-    dataset <- process_errors(dataset)
-  }
-
+    if (is.null(attr(dataset, "avg_naive2_errors") )) {
+      stop("summary_performance requires precalculated avg_naive2_errors, please run process_errors on dataset")
+    }
 
   labels <- sapply(dataset, function(lentry) which.min(lentry$errors) - 1)
   max_predictions <- apply(predictions, 1, which.max) - 1
