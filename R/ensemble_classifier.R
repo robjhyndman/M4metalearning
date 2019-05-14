@@ -70,24 +70,15 @@ error_softmax_obj <- function(preds, dtrain) {
 create_feat_classif_problem <- function(dataset) {
   stopifnot("features" %in% names(dataset[[1]]))
 
-  if (!("errors" %in% names(dataset[[1]])) ) {
-    stop("Must calculate the errors with process_errors to create the classification problem")
+  data <- t(sapply(dataset, function (lentry) as.numeric(lentry$features)))
+
+  if ("errors" %in% names(dataset[[1]]) ) {
+    errors <-  t(sapply(dataset, function (lentry) as.numeric(lentry$errors)))
+    return(list(data=data, errors=errors))
+  } else {
+    return(list(data=data))
   }
 
-  extracted <- t(sapply(dataset, function (lentry) {
-    seriesdata <- c(as.numeric(lentry$features), which.min(lentry$errors) -1,
-      lentry$errors
-      )
-    names(seriesdata) <- c( names(lentry$features), "best_method", names(lentry$errors))
-    seriesdata
-  }))
-
-  return_data <- list(data = extracted[, 1:length(dataset[[1]]$features)],
-       labels = extracted[, length(dataset[[1]]$features) +1],
-       errors = extracted[, -(1:(length(dataset[[1]]$features) +1))]
-       )
-
-  return_data
 }
 
 #' Train a method-selecting ensemble that minimizes forecasting error

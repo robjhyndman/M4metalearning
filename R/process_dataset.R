@@ -101,7 +101,7 @@ process_errors <- function(dataset, chunk_size=0) {
                                     do_shuffle = TRUE,
                                     save_checkpoint_filename = NULL,
                                     load_checkpoint_filename = NULL)
-    datanaive2 <- proc.err(datanaive2)
+    datanaive2 <- proc.err(datanaive2, chunk_size)
     #get the average of the two errors
     err_naive2 <- sapply(datanaive2, function(ll) c(mean(ll$mase_err), mean(ll$smape_err)))
 
@@ -119,7 +119,7 @@ process_errors <- function(dataset, chunk_size=0) {
     message("Reusing previously calculated Naive2 errors...")
   }
   avg_naive2_errors <- attr(dataset, "avg_naive2_errors")
-  dataset <- proc.err(dataset)
+  dataset <- proc.err(dataset, chunk_size)
   dataset <- lapply(dataset, function(ll) {
     ll$errors <- 0.5*(rowMeans(ll$mase_err)/avg_naive2_errors$avg_mase +
            rowMeans(ll$smape_err)/avg_naive2_errors$avg_smape)

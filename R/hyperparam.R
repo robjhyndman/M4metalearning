@@ -152,7 +152,7 @@ hyperparameter_search <- function(dataset, objective= c("averaging", "selection"
   train_selection_ensemble(data$data, data$errors, param, nrounds)
 }
 
-#' @export
+
 .train_from_bayes_res <- function (dataset, bayes_res, n.cores) {
   data <- create_feat_classif_problem(dataset)
   .train_data_from_bayes_res(data, bayes_res, n.cores)
