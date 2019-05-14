@@ -277,22 +277,22 @@ chunkify <- function( myFUN, chunk_size, do_shuffle=TRUE,
                       save_checkpoint_filename=NULL,
                       load_checkpoint_filename=NULL) {
 
-  function(dataset) {
+  function(.chunk_dataset) {
     #no chunk_size, return the original function
     if (chunk_size==0) {
-      return(myFUN(dataset))
+      return(myFUN(.chunk_dataset))
     }
 
     temp_dataset <- NULL
 
     if (do_shuffle) {
-      shuffling <- sample(length(dataset))
+      shuffling <- sample(length(.chunk_dataset))
     } else {
-      shuffling <- 1:length(dataset)
+      shuffling <- 1:length(.chunk_dataset)
     }
 
 
-    data_length <- length(dataset)
+    data_length <- length(.chunk_dataset)
 
     chunk_index <- seq(1, data_length, chunk_size)
     chunk_index <- c(chunk_index, data_length+1) #add a final DUMMY chunk
@@ -321,14 +321,14 @@ chunkify <- function( myFUN, chunk_size, do_shuffle=TRUE,
 
     #shuffle the dataset to even the processing cost of each chunk
     #after we have loaded the previous shuffling if we are resuming the computation
-    dataset <- dataset[shuffling]
+    .chunk_dataset <- .chunk_dataset[shuffling]
 
     start_time = proc.time()
     for (i in start_chunk:(length(chunk_index)-1)) {
       start_ind = chunk_index[i]
       end_ind = chunk_index[i+1]-1
-      chunked_data <- dataset[start_ind:end_ind]
-      temp_dataset <- append(temp_dataset, myFUN(chunked_data))
+      chunked_data <- .chunk_dataset[start_ind:end_ind]
+      temp_dataset <- c(temp_dataset, myFUN(chunked_data))
 
       if (!is.null(save_checkpoint_filename)) {
         save(temp_dataset, shuffling, chunk_size, file = save_checkpoint_filename)
@@ -337,9 +337,9 @@ chunkify <- function( myFUN, chunk_size, do_shuffle=TRUE,
       endchunk_time <- proc.time()
 
       message(paste("From ", start_ind, " to", end_ind,
-                    ", ", round(100*(end_ind) / length(dataset),2),
+                    ", ", round(100*(end_ind) / length(.chunk_dataset),2),
                     "% of the dataset processed, remaining time: ",
-                    round( (endchunk_time - start_time)[3]* (length(dataset) / (end_ind) -1), 2 ),
+                    round( (endchunk_time - start_time)[3]* (length(.chunk_dataset) / (end_ind) -1), 2 ),
                     "seconds") )
     }
 
@@ -354,11 +354,8 @@ chunkify <- function( myFUN, chunk_size, do_shuffle=TRUE,
 ### return a lapply version of the function, but parallel
 #' @export
 futurlapplyfy <- function(myFUN) {
-  function (dataset) {
-      list_process_fun <- function(dataset, ...) {
-        furrr::future_map(dataset, ...)
-      }
-    list_process_fun(dataset, myFUN)
+  function (.par_dataset) {
+      furrr::future_map(.par_dataset, myFUN)
   }
 }
 
