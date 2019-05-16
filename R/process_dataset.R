@@ -73,6 +73,14 @@ calc_err <- function(serielement) {
 
   smape_err <- 200*abs(ff - repoutsample) / (abs(ff) + abs(repoutsample))
 
+  if (anyNA(smape_err)) {
+    warning("Invalid values when calculating SMAPE error, setting them to the mean error")
+    smape_err[is.na(smape_err)] <- mean(smape_err, na.rm=TRUE)
+  }
+
+
+
+
   mase_err <- abs(ff - repoutsample) / masep
 
   serielement$smape_err <- smape_err
