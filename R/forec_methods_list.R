@@ -4,7 +4,7 @@
 #' of \code{{process_forecasts}}
 #' @seealso \code{\link{calc_forecasts}}
 #' @export
-forec_methods <- function() {
+M4_forec_methods <- function() {
   methods_list <- list("auto_arima_forec")
   methods_list <- append(methods_list, "ets_forec")
   methods_list <- append(methods_list, "nnetar_forec")

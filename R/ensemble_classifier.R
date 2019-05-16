@@ -29,7 +29,6 @@ softmax_transform <- function(x) {
 # minimizes de class probabilities * owi_errors
 #' @export
 error_softmax_obj <- function(preds, dtrain) {
-  labels <- xgboost::getinfo(dtrain, "label")
   errors <- attr(dtrain, "errors")
 
   preds <- exp(preds)
@@ -237,32 +236,36 @@ summary_performance <- function(predictions, dataset, print.summary = TRUE, use.
 #' @export
 #' @import forecast
 temp_holdout <- function(dataset) {
-  lapply(dataset, function(seriesentry) {
-    frq <- stats::frequency(seriesentry$x)
-    if (length(seriesentry$x) - seriesentry$h < max(2 * frq +1, 7)) {
-      length_to_keep <- max(2 * stats::frequency(seriesentry$x) +1, 7)
-      seriesentry$h <- length(seriesentry$x) - length_to_keep
-      if (seriesentry$h < 2) {
-        warning( paste( "cannot subset series by",
-                        2 - seriesentry$h,
-                        " observations, adding a mean constant") )
-
-        seriesentry$x <- stats::ts(c(seriesentry$x, rep(mean(seriesentry$x),2 - seriesentry$h )),
-                          frequency = frq,
-                          start=stats::start(seriesentry$x))
-        seriesentry$h <- 2
-      }
-    }
-    #note: we get first the tail, if we subset first, problems will arise (a temp variable for x should be used)
-    stopifnot(class(seriesentry$x)=="ts")
-    seriesentry$xx <- subset(seriesentry$x, subset=NULL, start = length(seriesentry$x) - seriesentry$h + 1)
-    seriesentry$x <- subset(seriesentry$x, subset=NULL, end = length(seriesentry$x) - seriesentry$h )
-    if (!is.null(seriesentry$n)) {
-      seriesentry$n <- length(seriesentry$x)
-    }
-    seriesentry
-  })
+  lapply(dataset, temporal_holdout)
 }
+
+temporal_holdout <- function(seriesentry) {
+  frq <- stats::frequency(seriesentry$x)
+  if (length(seriesentry$x) - seriesentry$h < max(2 * frq +1, 7)) {
+    length_to_keep <- max(2 * stats::frequency(seriesentry$x) +1, 7)
+    seriesentry$h <- length(seriesentry$x) - length_to_keep
+    if (seriesentry$h < 2) {
+      warning( paste( "cannot subset series by",
+                      2 - seriesentry$h,
+                      " observations, adding a mean constant") )
+
+      seriesentry$x <- stats::ts(c(seriesentry$x, rep(mean(seriesentry$x),2 - seriesentry$h )),
+                                 frequency = frq,
+                                 start=stats::start(seriesentry$x))
+      seriesentry$h <- 2
+    }
+  }
+  #note: we get first the tail, if we subset first, problems will arise (a temp variable for x should be used)
+  stopifnot(class(seriesentry$x)=="ts")
+  seriesentry$xx <- subset(seriesentry$x, subset=NULL, start = length(seriesentry$x) - seriesentry$h + 1)
+  seriesentry$x <- subset(seriesentry$x, subset=NULL, end = length(seriesentry$x) - seriesentry$h )
+  if (!is.null(seriesentry$n)) {
+    seriesentry$n <- length(seriesentry$x)
+  }
+  seriesentry
+}
+
+
 
 #' @export
 forecast_meta_M4 <- function(meta_model, x, h) {

@@ -174,7 +174,7 @@ process_errors <- function(dataset, chunk_size=0) {
 calc_forecasts <- function(seriesdata, methods_list) {
 
   #process each method in methods_list to produce the forecasts and the errors
-  lapply(methods_list, function (mentry) {
+  ff <- t(sapply(methods_list, function (mentry) {
     method_name <- mentry
     method_fun <- get(mentry)
     forecasts <- tryCatch( method_fun(x=seriesdata$x, h=seriesdata$h),
@@ -186,8 +186,10 @@ calc_forecasts <- function(seriesdata, methods_list) {
                              print("Returning snaive forecasts instead")
                              snaive_forec(seriesdata$x, seriesdata$h)
                            })
-    list( forecasts=forecasts, method_name=method_name)
-  })
+  }))
+  rownames(ff) <- unlist(methods_list)
+  seriesdata$ff <- ff
+  seriesdata
 }
 
 
@@ -251,24 +253,18 @@ process_forecasts <- function(dataset, forecast_methods, chunk_size=0, do_shuffl
                               save_checkpoint_filename=NULL,
                               load_checkpoint_filename=NULL) {
 
-  calcforec_fun <- function (seriesdata) {
-    results <- calc_forecasts(seriesdata, forecast_methods)
-    ff <- do.call("rbind", lapply(results, function (resentry) resentry$forecasts))
-    method_names <- sapply(results, function (resentry) resentry$method_name)
-    row.names(ff) <- method_names
-    seriesdata$ff <- ff
-    seriesdata
+
+  .calc_forec_methods <- function(seriesdata) {
+    calc_forecasts(seriesdata, forecast_methods)
   }
 
-  parchunk_calcforec <- chunkparfy( calcforec_fun,
+  parchunk_calcforec <- chunkparfy( .calc_forec_methods,
                                     chunk_size, do_shuffle,
                                     save_checkpoint_filename,
                                     load_checkpoint_filename)
 
   parchunk_calcforec(dataset)
 }
-
-
 
 
 #transform a function that works on a list, into the same function, but with saving/resuming capabilities
@@ -355,7 +351,7 @@ chunkify <- function( myFUN, chunk_size, do_shuffle=TRUE,
 #' @export
 futurlapplyfy <- function(myFUN) {
   function (.par_dataset) {
-      furrr::future_map(.par_dataset, myFUN)
+      future.apply::future_lapply(.par_dataset, myFUN)
   }
 }
 
