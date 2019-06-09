@@ -9,8 +9,8 @@
 
 #' @export
 hyperparameter_search <- function(dataset, objective= c("averaging", "selection"),
-                                  rand_points=100,
-                                  n_iter=1000, n.cores=1,
+                                  rand_points=50,
+                                  n_iter=50, n.cores=1,
                                   save_filename="bayes_hyper_search.RData",
                                   resume_filename=NULL) {
 
@@ -34,7 +34,7 @@ hyperparameter_search <- function(dataset, objective= c("averaging", "selection"
   }
 
   if (is.null(attr(dataset, "avg_naive2_errors"))) {
-    stop("Need to calculate the average naive2 OWA errors with process_errors")
+    stop("Need to calculate the average naive2 OWA errors with process_owa_errors")
   }
 
   type_objective <- match.arg(objective)
@@ -42,7 +42,7 @@ hyperparameter_search <- function(dataset, objective= c("averaging", "selection"
   N_THREAD = n.cores
   whole_dataset <- dataset
   #prepare the folds
-  folds <- rBayesianOptimization::KFold(1:length(whole_dataset), nfolds=5, seed=31-05-2018)
+  folds <- rBayesianOptimization::KFold(1:length(whole_dataset), nfolds=5)
 
   train_ds <- NULL
   test_ds <- NULL
@@ -81,7 +81,7 @@ hyperparameter_search <- function(dataset, objective= c("averaging", "selection"
       attr(test_ds[[i]], "avg_naive2_errors") <- attr(dataset, "avg_naive2_errors")
       er <- M4metalearning::summary_performance(preds,
                                                 test_ds[[i]],
-                                                print.summary = FALSE, use.precalc.naive2 = TRUE)
+                                                print.summary = FALSE)
       #maybe improve this a bit to avoid calculating both errors always
       er <- switch(type_objective,
         selection = er$selected_error,
@@ -131,7 +131,8 @@ hyperparameter_search <- function(dataset, objective= c("averaging", "selection"
                                   init_points= rand_points,
                                   kappa = 2.576,
                                   n_iter=n_iter,
-                                  kernel=list(type = "matern", nu=(2*k+1)/2))
+                                  kernel=list(type = "matern", nu=(2*k+1)/2),
+                                  verbose=FALSE)
   }
 
   bay_results <- readRDS(save_filename)

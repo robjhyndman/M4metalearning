@@ -2,13 +2,13 @@
 % Please edit documentation in R/features.R
 \name{process_THA_features}
 \alias{process_THA_features}
-\alias{THA_feat}
+\alias{calc_features}
 \title{Calculate features from Talagala, Hyndman, Athanaspoulos and add them to the dataset}
 \usage{
 process_THA_features(dataset, chunk_size = 0, do_shuffle = TRUE,
   save_checkpoint_filename = NULL, load_checkpoint_filename = NULL)
 
-THA_feat(series)
+calc_features(seriesentry)
 }
 \arguments{
 \item{dataset}{A list the elements having a \code{ts} object with the name \code{x}}
@@ -25,7 +25,7 @@ For each series in \code{dataset}, the feature set used in
 }
 \section{Functions}{
 \itemize{
-\item \code{THA_feat}: Calculate features from Talagala, Hyndman, Athanaspoulos from a single time series
+\item \code{calc_features}: Calculate features from Talagala, Hyndman, Athanaspoulos from a single time series
 }}
 
 \examples{

@@ -10,8 +10,7 @@ train_selection_ensemble(data, errors, params, nrounds)
 
 predict_selection_ensemble(model, newdata)
 
-summary_performance(predictions, dataset, print.summary = TRUE,
-  use.precalc.naive2 = FALSE)
+summary_performance(predictions, dataset, print.summary = TRUE)
 }
 \arguments{
 \item{data}{A matrix with the input features data (extracted from the series).

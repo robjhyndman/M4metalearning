@@ -53,18 +53,15 @@ error_softmax_obj <- function(preds, dtrain) {
 #custom classification problem
 #TO-DO: when there are draws in the errors, which class to pick as label?
 
-#' Create a classification problem from a forecasting-processed time series dataset
+#' Create a classification-like problem from a forecasting-processed time series dataset
 #'
-#' @param dataset A list with each element having a \code{THA_features} and a \code{errors} fields.
-#'     See \code{generate_THA_feature_dataset} and \code{process_forecast_dataset} for more information.
+#' @param dataset A list with each element having a \code{features} and a optionally \code{errors} fields.
+#'     See \code{THA_feature} and \code{process_forecasts} for more information.
 #'
 #'@return \code{create_feat_classif_problem} returns a list with the entries:
 #' \describe{
 #'   \item{data}{The features extracted from the series.}
-#'   \item{errors}{The errors produced by the forecasting method.}
-#'   \item{labels}{The target classification problem, created by selecting the method that produces.
-#'       Integer from 0 to (nmethods-1).}
-#'   }
+#'   \item{errors}{The errors produced by the forecasting method. If the air availabe in the dataset.}}
 #' @export
 create_feat_classif_problem <- function(dataset) {
   stopifnot("features" %in% names(dataset[[1]]))
@@ -116,18 +113,24 @@ predict_selection_ensemble <- function(model, newdata) {
 }
 
 
-#CANDIDATE TO REMOVE, ZERO CLAMPING....
+
+#on one hand we should have the model as first argument following the "predict" R convention
+#but this is also a function to be used with *apply type functions
 #' @export
-ensemble_forecast <- function(predictions, dataset, clamp_zero=TRUE) {
-  for (i in 1:length(dataset)) {
-    weighted_ff <- as.vector(t(predictions[i,]) %*% dataset[[i]]$ff)
-    if (clamp_zero) {
-      weighted_ff[weighted_ff < 0] <- 0
-    }
-    dataset[[i]]$y_hat <- weighted_ff
-  }
-  dataset
+predict_weights_meta <- function(seriesentry, model) {
+  pred <- stats::predict(model, as.matrix(seriesentry$features), outputmargin = TRUE, reshape=TRUE)
+  pred <- t(apply( pred, 1, softmax_transform))
+  seriesentry$weights <- pred
+  seriesentry
 }
+
+#' @export
+ensemble_meta <- function(seriesentry) {
+  seriesentry$ff_meta_sel <- seriesentry$ff[ which.max(seriesentry$weights), ]
+  seriesentry$ff_meta_avg <- seriesentry$weights %*% seriesentry$ff
+  seriesentry
+}
+
 
 
 
@@ -139,12 +142,12 @@ ensemble_forecast <- function(predictions, dataset, clamp_zero=TRUE) {
 #' @param use.precalc.naive2 Boolean indicating wheter the naive2 errors are already contained in \code{dataset} for skip its calculation
 #'
 #' @export
-summary_performance <- function(predictions, dataset, print.summary = TRUE, use.precalc.naive2=FALSE) {
+summary_performance <- function(predictions, dataset, print.summary = TRUE) {
   stopifnot("xx" %in% names(dataset[[1]]))
 
   #requires precalculated average errors of the dataset
     if (is.null(attr(dataset, "avg_naive2_errors") )) {
-      stop("summary_performance requires precalculated avg_naive2_errors, please run process_errors on dataset")
+      stop("summary_performance requires precalculated avg_naive2_errors, please run process_OWA_errors on dataset")
     }
 
   labels <- sapply(dataset, function(lentry) which.min(lentry$errors) - 1)
@@ -173,7 +176,7 @@ summary_performance <- function(predictions, dataset, print.summary = TRUE, use.
                                oracle_ff)
     }
 
-    dataset <- process_errors(dataset)
+    dataset <- process_owa_errors(dataset)
 
 
 
@@ -207,6 +210,15 @@ summary_performance <- function(predictions, dataset, print.summary = TRUE, use.
 }
 
 
+#' @export
+summary_meta <- function(dataset, print.summary = TRUE) {
+  stopifnot("xx" %in% names(dataset[[1]]))
+  stopifnot("ff" %in% names(dataset[[1]]))
+  stopifnot("weights" %in% names(dataset[[1]]))
+
+  weights <- t(sapply(dataset, function (ll) ll$weights))
+  summary_performance(weights, dataset, print.summary)
+}
 
 
 
@@ -238,7 +250,7 @@ summary_performance <- function(predictions, dataset, print.summary = TRUE, use.
 temp_holdout <- function(dataset) {
   lapply(dataset, temporal_holdout)
 }
-
+#' @export
 temporal_holdout <- function(seriesentry) {
   frq <- stats::frequency(seriesentry$x)
   if (length(seriesentry$x) - seriesentry$h < max(2 * frq +1, 7)) {
@@ -264,96 +276,4 @@ temporal_holdout <- function(seriesentry) {
   }
   seriesentry
 }
-
-
-
-#' @export
-forecast_meta_M4 <- function(meta_model, x, h) {
-
-  ele <- list(list(x=x, h=h))
-  ele <- process_THA_features(ele)
-
-  ff <- process_forecasts(ele[[1]], forec_methods())
-  ff <- t(sapply(ff, function (lentry) lentry$forecast))
-  rownames(ff) <- unlist(forec_methods())
-
-  preds <- predict_selection_ensemble(meta_model, as.matrix(ele[[1]]$features))
-
-  y_hat <- preds %*% ff
-
-  y_hat <- as.vector(y_hat)
-
-  #for the interval forecast we use only thetaf, naive and snaive
-  thetamod <- forecast::thetaf(x, h)
-  radius_theta <- thetamod$upper[,2] - thetamod$mean
-
-  naivemod <-forecast::naive(x, h)
-  radius_naive <- naivemod$upper[,2] - naivemod$mean
-
-  snaivemod <- forecast::snaive(x, h)
-  radius_snaive <- snaivemod$upper[,2] - snaivemod$mean
-
-  ff_radius <- rbind(radius_theta, radius_naive, radius_snaive)
-
-  radius <- rep(0, h)
-  if (h > 48) {
-    stop("Maximum forecasting horizon is 48")
-  }
-  for (i in 1:h) {
-    radius[i] <- sum(M4_interval_weights[,i] * ff_radius[,i])
-  }
-
-  upper <- as.vector(y_hat + radius)
-  lower <- as.vector(y_hat - radius)
-
-  y_hat[y_hat < 0] <- 0
-  upper[upper < 0] <- 0
-  lower[lower < 0] <- 0
-
-  list(mean=y_hat, upper=upper, lower=lower)
-}
-
-#' @export
-get_M4_interval_weights <- function() {
-  M4_interval_weights
-}
-
-#weights used for calu
-M4_interval_weights <- structure(c(1.20434805479858, 0.0349832013212199, -0.0135553803216437,
-            1.6348667017876, -0.0291391104169728, -0.137106578797595, 1.89343593467985,
-            -0.0556309211578089, -0.193624560527705, 1.97820794828226, -0.0710718154535777,
-            -0.123100424872484, 2.20852069562932, -0.0710600158690502, -0.211316149359757,
-            2.00533194439932, -0.0735768842959382, 0.00639025637846198, 1.54942520065088,
-            -0.057520179590224, 0.0192717604264258, 1.66779655654594, -0.0577404254880085,
-            -0.0301536402316914, 1.57793111309566, -0.0571366696960703, 0.00074454324835706,
-            1.58014785718421, -0.0546758191445934, 0.00023514471533616, 1.51051833028159,
-            -0.0502489429193765, 0.0306686761759747, 1.49667215498576, -0.0504760468509232,
-            0.0633292476660604, 1.46230478866238, -0.0532688561557852, 0.0966347659478812,
-            1.61065833858158, -0.0586474808085979, -0.010800707477267, 1.50576342267903,
-            -0.0520210844283552, 0.0144436883743055, 1.54921239534018, -0.053533338280372,
-            -0.0108667128746493, 1.53417971494702, -0.0579026110677012, 0.000297052007093576,
-            1.55732972883077, -0.0553048336745351, 0.0367638357882623, 0.116813998810538,
-            0.323446912667969, 0.630743390147047, 0.73284831139316, -0.0328228748038042,
-            0.614008235063802, 1.76483588802515, -0.0543503687837068, -0.0194824287225068,
-            0.40893801004056, -0.0372774403169106, 1.03983187771261, 0.874914242855032,
-            0.0520531705411014, 0.265317677176088, 1.43631066965087, -0.0197534066247038,
-            -0.173619599584651, 0.898313936819893, -0.0705817867062166, 0.325840179586548,
-            0.625354817708426, 0.0730184383944889, 0.327004041690249, 0.311911360827102,
-            -0.045054781310374, 1.04704513182606, 0.141901550600215, -0.0382311974845755,
-            1.34096763681398, 0.491822729685341, -0.0374825159401713, 0.915188301573958,
-            0.742763540929105, -0.0735719158347089, 0.906734816018297, 0.997546107480632,
-            -0.0835548323138982, 0.544652116459324, 0.687991299960411, -0.0463052425732432,
-            0.645709731320379, 0.564295324221999, -0.0634237302002972, 1.09921867894254,
-            -0.0931400534770518, -0.0191455415920918, 1.42725756848195, 0.425542670313752,
-            -0.0525723014099128, 1.11315125793807, 2.37441008580272, -0.182316365736858,
-            0.208272797333258, 1.37681109893514, -0.109037211688484, 0.322339972304184,
-            1.02158407919349, -0.0702467319013755, 0.547900910728034, 0.939473970980379,
-            -0.0831346087836634, 0.710478207012984, 0.088098458991328, -0.0279187923322283,
-            1.24491828863518, 1.03485500909627, -0.0845414892639553, 0.418196261825132,
-            0.432858831338303, -0.0486860688171931, 0.960107743238668, 0.0505708749888397,
-            -0.0195777073302953, 0.957162564794512, 0.520298978200399, 0.0250325108758569,
-            0.50637198342853, 0.502726050210653, -0.0498970101052844, 0.7843393684093,
-            1.19955393367803, -0.0995989563120128, 0.592116095974745, 0.0150399012793929,
-            -0.0310974825919329, 1.8790134248291, 1.42083348006252, -0.30878943417154,
-            1.97721144553016), .Dim = c(3L, 48L))
 

@@ -36,7 +36,7 @@ process_THA_features <- function(dataset,
                          save_checkpoint_filename=NULL,
                          load_checkpoint_filename=NULL) {
 
-  parchunk_THA <- chunkparfy( THA_feat, chunk_size, do_shuffle,
+  parchunk_THA <- chunkparfy( calc_features, chunk_size, do_shuffle,
              save_checkpoint_filename,
              load_checkpoint_filename)
 
@@ -46,7 +46,7 @@ process_THA_features <- function(dataset,
 #' @describeIn process_THA_features
 #' Calculate features from Talagala, Hyndman, Athanaspoulos from a single time series
 #' @export
-THA_feat <- function(seriesentry) {
+calc_features <- function(seriesentry) {
   series <- seriesentry$x
   featrow <-tsfeatures(
     series,

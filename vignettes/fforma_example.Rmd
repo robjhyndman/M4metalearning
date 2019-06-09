@@ -1,0 +1,75 @@
+---
+title: "FFORMA Metalearning Example"
+author: "Pablo Montero-Manso"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Metalearning}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, eval=TRUE, message = FALSE,
+  comment = "#>"
+)
+```
+
+Some table of contents here
+Quickstart
+
+Utility functions
+
+#Intro 
+
+A bit about metalearning for forecasting LINK.
+
+The package can be used easily with two main functions: `train_metalearning` and `forecast_metalearning`.
+
+These functions work on a `list` of time series in a specific format.
+Each element in this list has **at least** the component `$x` with a time series as a `ts` object, which is the series we want to forecast.
+
+##Training FFORMA
+The `train_metalearning` function will look for the components `$h` in the elements of the input list, where `$h` represents the desired prediction horizon. If not found, it will consider `h` to one seasonal period of the series. Then it substracts `h` observations from the time series `$x` and set them as true future values in the element `$xx`.
+Then the metalearning model is trained (takes a bit of time, see Paralellism). The output of the `train_metalearning` is the metalearning model, the training dataset (after the temporal crossvalidation) and the information about the training process. This output of the training process can be used to forecast with the `forecast_metalearning` function.
+
+In the example, we will use a dataset of time series from the Mcomp package as training set, which already follows the required format (a list with elements having the `$x`. Additionally the `$h` is provided).
+```{r}
+set.seed(1234)
+library(M4metalearning)
+#The dataset of time series we want to forecast
+ts_dataset <- Mcomp::M3[sample(length(Mcomp::M3), 30)]
+#train!
+fforma_fit <- train_metalearning(ts_dataset)
+```
+##Forecasting with FFORMA
+The `forecast_ metalearning` takes a metaleaning model (the output of `train_metalearning` or equivalent) and a dataset of time series we want to forecast. This dataset is a list in the same format, though now the `$h` component if necessary. The dataset for forecasting can be the same as the one used for training (since it uses crossvalidation by temporal holdout for training).
+
+```{r}
+fforma_forec <- forecast_metalearning(fforma_fit, ts_dataset)
+```
+Thats' it, two lines of code!
+
+`forecast_metalearning` outputs a dataset of time series similar to its input, but with the added forecasts in the component `$ff_meta_avg` of each element of the list.
+
+```{r}
+#get the forecasts of the first series
+fforma_forec$dataset[[1]]$ff_meta_avg
+```
+
+
+#Parallelism and Save/Restore progress
+
+Forecasting with FFORMA can take a bit of time depending of the individual models that are going to be combined for forecasting and the size of the dataset.
+Parallelism through the `future` package is provided and the processing can be periodically saved to disk and resumed in the case of failure (like power outage, or an impending Windows update).
+
+
+#forecast methods
+Gives a default
+You can fine tune the method by changing with forecast methods are combined by fforma.
+
+#Combination by Model Averaging or Model Selection
+
+#Advanced use
+The package provides functions 

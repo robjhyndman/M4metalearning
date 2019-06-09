@@ -40,190 +40,139 @@ append_suffix <- function(fname_string, suffix) {
 
 
 #' @export
-train_metalearning <- function(dataset, forec_methods = M4_forec_methods(),
+train_metalearning <- function(train_dataset, forec_methods = M4_forec_methods(),
                                objective = "averaging",
                                chunk_size=NULL,
-                               save_filename="tmp_train_meta.RData",
-                               resume_filename=NULL) {
-
-  bayes_results <- NULL
-  #all the function call parameters plus the state variable are saved on checkpoints
-  save_training <- function() {
-    save(dataset, state, objective, save_filename, chunk_size, forec_methods, bayes_results,
-         file = save_filename)
-  }
-
-
-
-  state <- "STARTING"
-
-
-
-
-  #the intermediate files to store chunkified processes and hyperparameter search
-  proc_save_filename <- append_suffix(save_filename, suffix="_proc.")
-  proc_resume_filename <-  append_suffix(resume_filename, suffix="_proc.")
-
-
-  #when we are the resuming, check the state and go to the proper state, good old spaghetti code
-  if (!is.null(resume_filename)) {
-    load(resume_filename)
-  }
-
-  save_training()
-
-  #state machine, to guide which processing is further required
-  do_holdout <- state == "STARTING"
-  do_forecast <- do_holdout || state == "HOLDOUT_DONE"
-  do_features <- do_forecast || state == "FORECAST_DONE"
-  do_errors <- do_features || state == "FEATURES_DONE"
-  do_hyper <- do_errors || state == "CALCERRORS_DONE"
-
-  ##get the number of workers from the future plan, used in auto chunk_size calculation and to launch xgboost
+                               save_foldername=NULL) {
 
   num_workers <- autodetect_num_workers()
-
-  if (do_holdout) {
-    message("Calculating holdout data...")
-    ##check if we have true future values in $xx, if we do, skip the holdout, if we dont, use the horizon $h for temporal holdout
-    ##if we do not have horizon, set $h to a period of frequency, if frequency is 1 then set $h to 6
-    dataset <- lapply(dataset, function (ll) {
-      #we can add here some sanity checks
-
-      #check if we have prediction horizon, if not
-      if (is.null(ll$xx)) {
-        if (is.null(ll$h)) {
-          ll$h <- frequency(ll$x)
-          if (ll$h == 1) {
-            ll$h <- 4
-          }
-        }
-      }
-      ll})
-
-    dataset <- M4metalearning::temp_holdout(dataset)
-    gc()
-
-  }
-
-
-
-
-  #process the forecasts
-  #check if we are resuming calculations
-
-  #calculate chunks and everything
   if (is.null(chunk_size)) {
-    chunk_size <- calculate_chunk_size(dataset,   num_workers)
+    chunk_size <- calculate_chunk_size(train_dataset, num_workers)
   }
 
+  train_proc <- function(lentry, methods_list) {
+    lentry <- temporal_holdout(lentry)
+    lentry <- calc_forecasts(lentry, methods_list)
+    lentry <- calc_features(lentry)
+    lentry <- calc_mase_smape_errors(lentry)
+  }
 
-  if (do_forecast) {
-    if (state != "HOLDOUT_DONE") {
-      message("Holdout calculated, saving...")
-      state <- "HOLDOUT_DONE"
-      proc_resume_filename <- NULL #we are doing forecast for the first time, we cannot resume
-      save_training()
+  train_dataset <- chunk_xapply(train_dataset, chunk_size, save_foldername, "train_call",
+                                future.apply::future_lapply,
+                                train_proc, forec_methods)
+
+  train_dataset <- process_owa_errors(train_dataset)
+
+
+  ##hyper search uses a file internally
+  bayes_resume_filename <- NULL
+  bayes_save_filename <- "meta_bayes_hypersearch.rds"
+  if (!is.null(save_foldername)) {
+    bayes_save_filename <- paste(save_foldername, "/", bayes_save_filename, collapse="", sep="")
+    if (file.exists(bayes_save_filename)) {
+      bayes_resume_filename <- bayes_save_filename
     }
-    message("Processing forecasts...")
-    dataset <- M4metalearning::process_forecasts(dataset, forec_methods,
-                                                 chunk_size = chunk_size, do_shuffle = TRUE,
-                                                 save_checkpoint_filename = proc_save_filename,
-                                                 load_checkpoint_filename = proc_resume_filename)
-    gc()
   }
 
-  if (do_features) {
-    if (state != "FORECAST_DONE") {
-      #save the state, set it to forecast_done
-      message("Forecasts calculated, saving...")
-      state <- "FORECAST_DONE"
-      proc_resume_filename <- NULL  #we are doing features for the first time, we cannot resume
-      save_training()
-    }
-    #go for the features
-    message("Calculating features...")
-    dataset <- M4metalearning::process_THA_features(dataset, chunk_size,
-                                                    do_shuffle = TRUE,
-                                                    save_checkpoint_filename = proc_save_filename,
-                                                    load_checkpoint_filename = proc_resume_filename)
-    gc()
-    #save the state, set it to features_done
-    state <- "FEATURES_DONE"
-    message("Features calculated, saving...")
-    save_training()
-  }
-
-  if (do_errors) {
-    #calculate the errors
-    dataset <- M4metalearning::process_errors(dataset)
-    gc()
-  }
-
-  #now do the hyperparameter search
-
-
-  ### from this point on, we can already use the model!!!!
-
-
-
-
-  if (do_hyper) {
-    if (state != "CALCERRORS_DONE") {
-      state <- "CALCERRORS_DONE"
-      proc_resume_filename <- NULL
-      message("Errors calculated, saving...")
-      save_training()
-    }
-    bayes_results <- M4metalearning::hyperparameter_search(dataset, objective = objective,
-                                                           n_iter=5, n.cores=num_workers,
-                                                           rand_points = 4,
-                                                           save_filename=proc_save_filename,
-                                                           resume_filename=proc_resume_filename)
-    state <- "HYPER_DONE"
-    save_training()
-  }
-
+  bayes_results <- M4metalearning::hyperparameter_search(train_dataset, objective = objective,
+                                                         n_iter=5, n.cores=num_workers,
+                                                         rand_points = 4,
+                                                         save_filename=bayes_save_filename,
+                                                         resume_filename=bayes_resume_filename)
 
   best_params <- bayes_results[which.min(bayes_results[, ncol(bayes_results)]), ]
 
-  meta_model <- .train_from_bayes_res(dataset, best_params, n.cores = num_workers)
+  meta_model <- .train_from_bayes_res(train_dataset, best_params, n.cores = num_workers)
 
-
-  gc()
-
-
-  list(dataset=dataset, meta_model=meta_model, forec_methods=forec_methods,
+  list(train_dataset=train_dataset, meta_model=meta_model, forec_methods=forec_methods,
        objective=objective,
        bayes_results=bayes_results)
-
 }
 
-
-#forecast meta
-
-#pass the object for training, and a dataset
-#uses similar structure as the R predict
-
-#returns a dataset with added component y hat and the individual forecasts
-
-#last step is to add the summary performance, we save it for the output also
-#we can do the comparison through crossvalidation if sample and test are a holdout version
-
-#the
-
-
-
 #' @export
-forecast_meta <- function(model, new.dataset,
+#' @import memoise
+forecast_metalearning <- function(model, new_dataset,
                           chunk_size=NULL,
-                          save_filename="tmp_forec_meta.RData",
-                          resume_filename=NULL) {
+                          save_foldername=NULL) {
 
   num_workers <- autodetect_num_workers()
   if (is.null(chunk_size)) {
-    chunk_size <- calculate_chunk_size(new.dataset, num_workers)
+    chunk_size <- calculate_chunk_size(new_dataset, num_workers)
   }
+
+
+  #all the processing steps for doing the forecasting
+  forec_steps <- function (lentry, model) {
+    lentry <- calc_forecasts(lentry, model$forec_methods)
+    lentry <- calc_features(lentry)
+    lentry <- predict_weights_meta(lentry, model$meta_model)
+    lentry <- ensemble_meta(lentry)
+    lentry <- calc_mase_smape_errors(lentry)
+    lentry
+  }
+
+  new_dataset <- chunk_xapply(new_dataset, chunk_size, save_foldername, "forec_call",
+               future.apply::future_lapply,
+               forec_steps, model)
+
+  owa_errors <- NULL
+  if (!is.null(new_dataset[[1]]$xx)) {
+    new_dataset <- process_owa_errors(new_dataset)
+    owa_errors <- summary_meta(new_dataset)
+  }
+  list(dataset=new_dataset, owa_errors=owa_errors)
+}
+
+#' @import memoise
+chunk_xapply <- function( .chunk_dataset, chunk_size, save_foldername, .idcall, .apply_FUN, ... ) {
+
+  if (!is.null(save_foldername)) {
+    message(paste("using cache in:", save_foldername, "for saving/resuming computations"))
+  }
+  temp_dataset <- NULL
+  data_length <- length(.chunk_dataset)
+
+  chunk_index <- seq(1, data_length, chunk_size)
+  chunk_index <- c(chunk_index, data_length+1) #add a final DUMMY chunk
+  start_chunk <- 1
+
+
+  start_time = proc.time()
+  for (i in start_chunk:(length(chunk_index)-1)) {
+    start_ind = chunk_index[i]
+    end_ind = chunk_index[i+1]-1
+
+    if (!is.null(save_foldername)) {
+      whether_memoize <- memoize
+    } else {
+      whether_memoize <- function(x, cache) x
+    }
+    memofun <- whether_memoize( function(call_id, chunk_id, myMeMoFun) {
+      myMeMoFun(.chunk_dataset[start_ind:end_ind],...)
+      },
+                        cache=cache_filesystem(save_foldername) )
+    temp_dataset <- c(temp_dataset, memofun(.idcall, start_ind, .apply_FUN))
+
+    #remaining time calculations
+    endchunk_time <- proc.time()
+
+    message(paste("From ", start_ind, " to", end_ind,
+                  ", ", round(100*(end_ind) / length(.chunk_dataset),2),
+                  "% of the dataset processed, remaining time: ",
+                  round( (endchunk_time - start_time)[3]* (length(.chunk_dataset) / (end_ind) -1), 2 ),
+                  "seconds") )
+  }
+  temp_dataset
+}
+
+
+
+
+
+#############old forec
+
+if (0) {
+
 
   weights <- NULL
   state <- "STARTING"
